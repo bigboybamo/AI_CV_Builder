@@ -361,6 +361,7 @@ C:\Users\oyetu\source\repos\NewAI_CV_builder\NewAI_CV_builder\obj\Debug\net10.0-
 C:\Users\oyetu\source\repos\NewAI_CV_builder\NewAI_CV_builder\obj\Debug\net10.0-windows\NewAI_CV_builder.AssemblyInfoInputs.cache
 C:\Users\oyetu\source\repos\NewAI_CV_builder\NewAI_CV_builder\obj\Debug\net10.0-windows\NewAI_CV_builder.AssemblyInfo.cs
 C:\Users\oyetu\source\repos\NewAI_CV_builder\NewAI_CV_builder\obj\Debug\net10.0-windows\NewAI_CV_builder.csproj.CoreCompileInputs.cache
+C:\Users\oyetu\source\repos\NewAI_CV_builder\NewAI_CV_builder\obj\Debug\net10.0-windows\NewAI_CV_builder.sourcelink.json
 C:\Users\oyetu\source\repos\NewAI_CV_builder\NewAI_CV_builder\obj\Debug\net10.0-windows\NewAI_CV.DF8C40DD.Up2Date
 C:\Users\oyetu\source\repos\NewAI_CV_builder\NewAI_CV_builder\obj\Debug\net10.0-windows\NewAI_CV_builder.dll
 C:\Users\oyetu\source\repos\NewAI_CV_builder\NewAI_CV_builder\obj\Debug\net10.0-windows\refint\NewAI_CV_builder.dll

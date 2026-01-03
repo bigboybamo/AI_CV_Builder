@@ -48,8 +48,10 @@
             TextOutput.Location = new Point(54, 290);
             TextOutput.Multiline = true;
             TextOutput.Name = "TextOutput";
+            TextOutput.ReadOnly = true;
             TextOutput.Size = new Size(561, 243);
             TextOutput.TabIndex = 1;
+            TextOutput.TextChanged += TextOutput_TextChanged;
             // 
             // SendBtn
             // 

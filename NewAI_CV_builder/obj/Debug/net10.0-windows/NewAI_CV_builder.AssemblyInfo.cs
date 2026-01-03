@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("NewAI_CV_builder")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+24cf0cf5685c9e2de83f6c4fec9d6c9a4c544e36")]
 [assembly: System.Reflection.AssemblyProductAttribute("NewAI_CV_builder")]
 [assembly: System.Reflection.AssemblyTitleAttribute("NewAI_CV_builder")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
