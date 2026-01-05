@@ -36,6 +36,8 @@ namespace NewAI_CV_builder
             _isUpdating = true;
             JsonCV.Text = StripMarkdownCodeFence(TextOutput.Text);
             _isUpdating = false;
+
+            Generate_Rsme.PerformClick();
         }
 
         public static async Task<string> CallOpenAiAsync(string prompt, string apiKey)
@@ -258,11 +260,13 @@ namespace NewAI_CV_builder
         private void Generate_Rsme_Click(object sender, EventArgs e)
         {
             // check if JsonCV is empty
-            if (string.IsNullOrWhiteSpace(JsonCV.Text))
+            if (string.IsNullOrWhiteSpace(JsonCV.Text) && !_isUpdating)
             {
                 MessageBox.Show("Please load a JSON CV before generating the resume.", "Input Required", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
+
+            if (JsonCV.Text == "Loading...") return;
 
             var downloadfilePath = Environment.GetEnvironmentVariable("RESUME_DOWNLOAD_PATH");
             var resumeFileName = Environment.GetEnvironmentVariable("RESUME_FILE_NAME");
