@@ -52,5 +52,29 @@ CANDIDATE JSON RESUME:
 >>>
 """;
         }
+
+        public static string BuildUpwork(string jobDescription, string jobtype)
+        {
+            if (string.IsNullOrWhiteSpace(jobDescription))
+                throw new ArgumentException("Job description cannot be empty.", nameof(jobDescription));
+
+            if (string.IsNullOrWhiteSpace(jobtype))
+                throw new ArgumentException("Job type cannot be empty.", nameof(jobtype));
+
+            // Normalise line endings
+            jobDescription = jobDescription.Replace("\r\n", "\n");
+
+            return jobtype switch
+            {
+                "Web Developer" =>
+                    string.Format(UpworkPromptTemplates.WebDeveloperCoverLetter, jobDescription),
+
+                "Desktop Developer" =>
+                    string.Format(UpworkPromptTemplates.DesktopDeveloperCoverLetter, jobDescription),
+
+                _ =>
+                    string.Format(UpworkPromptTemplates.TechnicalWriterCoverLetter, jobDescription)
+            };
+        }
     }
 }
