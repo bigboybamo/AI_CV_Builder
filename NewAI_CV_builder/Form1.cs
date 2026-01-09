@@ -19,8 +19,9 @@ namespace NewAI_CV_builder
         public Form1()
         {
             InitializeComponent();
-            _jobTitles = new List<string> { "Web Developer", "Desktop Developer", "Technical Writer" };
+            _jobTitles = new List<string> { "-- Select a job title --", "Web Developer", "Desktop Developer", "Technical Writer" };
             Jobs_List.DataSource = _jobTitles;
+            Jobs_List.SelectedIndex = 0;
             _debounceTimer.Interval = 300; // ms
             _debounceTimer.Tick += DebounceTimer_Tick;
         }
@@ -337,6 +338,12 @@ namespace NewAI_CV_builder
             if (string.IsNullOrEmpty(UptextInput.Text))
             {
                 MessageBox.Show("Please enter a prompt before sending.", "Input Required", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            if (Jobs_List.SelectedIndex <= 0)
+            {
+                MessageBox.Show("Please select a job title.");
                 return;
             }
 
