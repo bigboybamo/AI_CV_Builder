@@ -33,19 +33,28 @@
             SendBtn = new Button();
             JsonCV = new TextBox();
             Generate_Rsme = new Button();
+            splitContainer1 = new SplitContainer();
+            Jobs_List = new ComboBox();
+            Upwk_btn = new Button();
+            UptextOutput = new TextBox();
+            UptextInput = new TextBox();
+            ((System.ComponentModel.ISupportInitialize)splitContainer1).BeginInit();
+            splitContainer1.Panel1.SuspendLayout();
+            splitContainer1.Panel2.SuspendLayout();
+            splitContainer1.SuspendLayout();
             SuspendLayout();
             // 
             // TextInput
             // 
-            TextInput.Location = new Point(54, 58);
+            TextInput.Location = new Point(14, 72);
             TextInput.Multiline = true;
             TextInput.Name = "TextInput";
-            TextInput.Size = new Size(427, 115);
+            TextInput.Size = new Size(427, 153);
             TextInput.TabIndex = 0;
             // 
             // TextOutput
             // 
-            TextOutput.Location = new Point(54, 290);
+            TextOutput.Location = new Point(14, 414);
             TextOutput.Multiline = true;
             TextOutput.Name = "TextOutput";
             TextOutput.ReadOnly = true;
@@ -55,7 +64,7 @@
             // 
             // SendBtn
             // 
-            SendBtn.Location = new Point(54, 211);
+            SendBtn.Location = new Point(30, 270);
             SendBtn.Name = "SendBtn";
             SendBtn.Size = new Size(112, 34);
             SendBtn.TabIndex = 2;
@@ -65,7 +74,7 @@
             // 
             // JsonCV
             // 
-            JsonCV.Location = new Point(788, 58);
+            JsonCV.Location = new Point(528, 72);
             JsonCV.Multiline = true;
             JsonCV.Name = "JsonCV";
             JsonCV.ReadOnly = true;
@@ -77,7 +86,7 @@
             // 
             // Generate_Rsme
             // 
-            Generate_Rsme.Location = new Point(810, 350);
+            Generate_Rsme.Location = new Point(584, 238);
             Generate_Rsme.Name = "Generate_Rsme";
             Generate_Rsme.Size = new Size(180, 50);
             Generate_Rsme.TabIndex = 4;
@@ -85,20 +94,79 @@
             Generate_Rsme.UseVisualStyleBackColor = true;
             Generate_Rsme.Click += Generate_Rsme_Click;
             // 
+            // splitContainer1
+            // 
+            splitContainer1.Location = new Point(25, 21);
+            splitContainer1.Name = "splitContainer1";
+            // 
+            // splitContainer1.Panel1
+            // 
+            splitContainer1.Panel1.Controls.Add(JsonCV);
+            splitContainer1.Panel1.Controls.Add(Generate_Rsme);
+            splitContainer1.Panel1.Controls.Add(TextOutput);
+            splitContainer1.Panel1.Controls.Add(SendBtn);
+            splitContainer1.Panel1.Controls.Add(TextInput);
+            // 
+            // splitContainer1.Panel2
+            // 
+            splitContainer1.Panel2.Controls.Add(Jobs_List);
+            splitContainer1.Panel2.Controls.Add(Upwk_btn);
+            splitContainer1.Panel2.Controls.Add(UptextOutput);
+            splitContainer1.Panel2.Controls.Add(UptextInput);
+            splitContainer1.Size = new Size(1543, 746);
+            splitContainer1.SplitterDistance = 831;
+            splitContainer1.TabIndex = 5;
+            // 
+            // Jobs_List
+            // 
+            Jobs_List.FormattingEnabled = true;
+            Jobs_List.Location = new Point(474, 270);
+            Jobs_List.Name = "Jobs_List";
+            Jobs_List.Size = new Size(182, 33);
+            Jobs_List.TabIndex = 3;
+            Jobs_List.SelectedIndexChanged += Jobs_List_SelectedIndexChanged;
+            // 
+            // Upwk_btn
+            // 
+            Upwk_btn.Location = new Point(62, 270);
+            Upwk_btn.Name = "Upwk_btn";
+            Upwk_btn.Size = new Size(148, 34);
+            Upwk_btn.TabIndex = 2;
+            Upwk_btn.Text = "Send Prompt";
+            Upwk_btn.UseVisualStyleBackColor = true;
+            Upwk_btn.Click += Upwk_btn_Click;
+            // 
+            // UptextOutput
+            // 
+            UptextOutput.Location = new Point(62, 414);
+            UptextOutput.Multiline = true;
+            UptextOutput.Name = "UptextOutput";
+            UptextOutput.Size = new Size(469, 243);
+            UptextOutput.TabIndex = 1;
+            // 
+            // UptextInput
+            // 
+            UptextInput.Location = new Point(62, 72);
+            UptextInput.Multiline = true;
+            UptextInput.Name = "UptextInput";
+            UptextInput.Size = new Size(469, 153);
+            UptextInput.TabIndex = 0;
+            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(10F, 25F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(1140, 664);
-            Controls.Add(Generate_Rsme);
-            Controls.Add(JsonCV);
-            Controls.Add(SendBtn);
-            Controls.Add(TextOutput);
-            Controls.Add(TextInput);
+            ClientSize = new Size(1601, 797);
+            Controls.Add(splitContainer1);
             Name = "Form1";
             Text = "Form1";
+            splitContainer1.Panel1.ResumeLayout(false);
+            splitContainer1.Panel1.PerformLayout();
+            splitContainer1.Panel2.ResumeLayout(false);
+            splitContainer1.Panel2.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)splitContainer1).EndInit();
+            splitContainer1.ResumeLayout(false);
             ResumeLayout(false);
-            PerformLayout();
         }
 
         #endregion
@@ -108,5 +176,10 @@
         private Button SendBtn;
         private TextBox JsonCV;
         private Button Generate_Rsme;
+        private SplitContainer splitContainer1;
+        private TextBox UptextInput;
+        private TextBox UptextOutput;
+        private Button Upwk_btn;
+        private ComboBox Jobs_List;
     }
 }

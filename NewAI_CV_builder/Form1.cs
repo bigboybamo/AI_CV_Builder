@@ -14,10 +14,13 @@ namespace NewAI_CV_builder
         private readonly string? claudeApiKey = Environment.GetEnvironmentVariable("CLAUDIUS_API_KEY");
         private readonly System.Windows.Forms.Timer _debounceTimer = new System.Windows.Forms.Timer();
         private bool _isUpdating;
+        private readonly List<string> _jobTitles;
 
         public Form1()
         {
             InitializeComponent();
+            _jobTitles = new List<string> { "Web Developer", "Desktop Developer", "Technical Writer" };
+            Jobs_List.DataSource = _jobTitles;
             _debounceTimer.Interval = 300; // ms
             _debounceTimer.Tick += DebounceTimer_Tick;
         }
@@ -322,6 +325,44 @@ namespace NewAI_CV_builder
         {
             _debounceTimer.Stop();
             _debounceTimer.Start();
+        }
+
+        private void Jobs_List_SelectedIndexChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void Upwk_btn_Click(object sender, EventArgs e)
+        {
+            if (string.IsNullOrEmpty(UptextInput.Text))
+            {
+                MessageBox.Show("Please enter a prompt before sending.", "Input Required", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            //Call the OpenAI API asynchronously and update the UI when done
+
+            Upwk_btn.Enabled = false;
+            UptextOutput.Text = "Loading...";
+            //CallOpenAiAsync(TextInput.Text, apiKey).ContinueWith(task =>
+            //{
+            //    // Update the UI on the main thread
+            // call claude api asynchronously and update the UI when done
+
+            var selectedJob = Jobs_List.SelectedValue.ToString();
+
+            string prompt = AtsResumePromptBuilder.BuildUpwork(UptextInput.Text, selectedJob);
+
+            CallClaudeAsync(prompt, claudeApiKey).ContinueWith(task =>
+            {
+                // Update the UI on the main thread
+                this.Invoke((Action)(() =>
+                {
+                    UptextOutput.Text = task.Result;
+                    Upwk_btn.Enabled = true;
+                }));
+            });
+
         }
     }
 }
