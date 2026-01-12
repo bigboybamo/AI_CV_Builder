@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace NewAI_CV_builder.Utilities
+﻿namespace NewAI_CV_builder.Utilities
 {
     public class PromptRules
     {

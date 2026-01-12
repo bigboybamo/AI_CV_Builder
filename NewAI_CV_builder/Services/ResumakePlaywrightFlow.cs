@@ -1,7 +1,5 @@
 ﻿using Microsoft.Playwright;
 using Serilog;
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
 

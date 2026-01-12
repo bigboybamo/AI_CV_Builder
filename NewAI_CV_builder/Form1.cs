@@ -20,6 +20,11 @@ namespace NewAI_CV_builder
         {
             InitializeComponent();
             _jobTitles = new List<string> { "-- Select a job title --", "Web Developer", "Desktop Developer", "Technical Writer" };
+
+            MoreRulesBox.DisplayMember = nameof(CheckBoxRuleItem.Text);
+            MoreRulesBox.ValueMember = nameof(CheckBoxRuleItem.Value);
+            MoreRulesBox.DataSource = CheckBoxRuleCatalog.JobTypeRules;
+
             Jobs_List.DataSource = _jobTitles;
             Jobs_List.SelectedIndex = 0;
             _debounceTimer.Interval = 300; // ms
@@ -346,21 +351,17 @@ namespace NewAI_CV_builder
                 MessageBox.Show("Please select a job title.");
                 return;
             }
-
-
-
             //Call the OpenAI API asynchronously and update the UI when done
 
             Upwk_btn.Enabled = false;
             UptextOutput.Text = "Loading...";
-            //CallOpenAiAsync(TextInput.Text, apiKey).ContinueWith(task =>
-            //{
-            //    // Update the UI on the main thread
+
             // call claude api asynchronously and update the UI when done
+            IEnumerable<string> runtimeRules = MoreRulesBox.CheckedItems.Cast<CheckBoxRuleItem>().Select(x => x.Value);
 
             var selectedJob = Jobs_List.SelectedValue.ToString();
 
-            string prompt = AtsResumePromptBuilder.BuildUpwork(UptextInput.Text, selectedJob);
+            string prompt = AtsResumePromptBuilder.BuildUpwork(UptextInput.Text, selectedJob, runtimeRules);
 
             CallClaudeAsync(prompt, claudeApiKey).ContinueWith(task =>
             {
