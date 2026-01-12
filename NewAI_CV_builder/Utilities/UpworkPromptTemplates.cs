@@ -6,6 +6,8 @@ namespace NewAI_CV_builder.Utilities
 {
     public static class UpworkPromptTemplates
     {
+        private const string GenRulesToken = "<<GEN_RULES>>";
+
         public const string WebDeveloperCoverLetter =
             @"Create an upwork proposal for a Web Developer role using the following job description:
 
@@ -24,18 +26,8 @@ namespace NewAI_CV_builder.Utilities
             Novo Health – Ijele HMO application:
             https://ijele.novohealthafrica.org/
 
-            Keep it concise, avoid jargon, and emphasise the real-world systems and links. Make sure it looks like a proposal and NOT a Cover letter
-
-                Generation rules (must follow exactly):
-                - Use plain, direct language
-                - Do NOT add sections beyond a greeting, body paragraphs, and a sign-off
-                - Do NOT add headings, bullet points, or emojis
-                - Do NOT invent experience or links
-                - Do NOT remove or modify any provided links
-                - Do NOT repeat the job description
-                - Keep the letter concise and professional
-                - Avoid buzzwords, marketing language, and exaggeration
-                - Output ONLY the final cover letter text
+            Keep it concise, avoid jargon, and emphasise the real-world systems and links. Make sure it looks like a proposal and NOT a Cover letter 
+<<GEN_RULES>>
 
                 Similar to
 
@@ -90,18 +82,8 @@ namespace NewAI_CV_builder.Utilities
             https://dev.to/bigboybamo/how-to-create-an-installer-for-a-winforms-application-using-wix-for-visual-studio-2022-1c47
             https://dev.to/bigboybamo/how-to-create-an-installer-for-a-winforms-application-using-visual-studio-2022-installer-project-5nh
 
-            Keep it short, use minimal jargon, and place strong emphasis on the links.
-
-              Generation rules (must follow exactly):
-                            - Use plain, direct language
-                            - Do NOT add sections beyond a greeting, body paragraphs, and a sign-off
-                            - Do NOT add headings, bullet points, or emojis
-                            - Do NOT invent experience or links
-                            - Do NOT remove or modify any provided links
-                            - Do NOT repeat the job description
-                            - Keep the letter concise and professional
-                            - Avoid buzzwords, marketing language, and exaggeration
-                            - Output ONLY the final cover letter text
+            Keep it short, use minimal jargon, and place strong emphasis on the links. 
+<<GEN_RULES>>
 
             Similar to
 
@@ -158,18 +140,8 @@ namespace NewAI_CV_builder.Utilities
             Mention my contributions to the official .NET documentation, focused on clarity and completeness:
             https://github.com/dotnet/docs/pulls?q=is%3Apr+is%3Aclosed+author%3Abigboybamo
 
-            Keep it concise, avoid heavy jargon, and prioritise clarity and links.
-
-              Generation rules (must follow exactly):
-                            - Use plain, direct language
-                            - Do NOT add sections beyond a greeting, body paragraphs, and a sign-off
-                            - Do NOT add headings, bullet points, or emojis
-                            - Do NOT invent experience or links
-                            - Do NOT remove or modify any provided links
-                            - Do NOT repeat the job description
-                            - Keep the letter concise and professional
-                            - Avoid buzzwords, marketing language, and exaggeration
-                            - Output ONLY the final cover letter text
+            Keep it concise, avoid heavy jargon, and prioritise clarity and links. 
+<<GEN_RULES>>
 
                  Similar to
 
@@ -196,5 +168,22 @@ namespace NewAI_CV_builder.Utilities
                     Best Regards,
                     Ola
 ";
+
+        public static string Build(string template, string jobDescription, IEnumerable<string>? runtimeRules = null)
+        {
+            if (!template.Contains(GenRulesToken))
+                throw new InvalidOperationException($"Template is missing the token: {GenRulesToken}");
+
+            jobDescription = jobDescription.Replace("\r\n", "\n");
+
+            var formatted = string.Format(template, jobDescription)
+                .Replace("\r\n", "\n");
+
+            var rulesBlock = PromptRules.BuildRulesBlock(runtimeRules);
+
+            return formatted.Replace(GenRulesToken, rulesBlock);
+        }
     }
+
+
 }

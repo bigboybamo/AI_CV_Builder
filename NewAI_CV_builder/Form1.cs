@@ -347,6 +347,8 @@ namespace NewAI_CV_builder
                 return;
             }
 
+
+
             //Call the OpenAI API asynchronously and update the UI when done
 
             Upwk_btn.Enabled = false;
