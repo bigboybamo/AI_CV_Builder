@@ -369,6 +369,15 @@ namespace NewAI_CV_builder
                 this.Invoke((Action)(() =>
                 {
                     UptextOutput.Text = task.Result;
+                    try
+                    {
+                        if (!string.IsNullOrEmpty(UptextOutput.Text))
+                            Clipboard.SetText(UptextOutput.Text);
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Warning(ex, "Failed to copy UptextOutput to clipboard");
+                    }
                     Upwk_btn.Enabled = true;
                 }));
             });
