@@ -34,13 +34,17 @@
             JsonCV = new TextBox();
             Generate_Rsme = new Button();
             splitContainer1 = new SplitContainer();
+            label1 = new Label();
+            textBox1 = new TextBox();
             ResumeLabl = new Label();
+            MoreRulesBox = new CheckedListBox();
             UpworkLabl = new Label();
             Jobs_List = new ComboBox();
             Upwk_btn = new Button();
             UptextOutput = new TextBox();
             UptextInput = new TextBox();
-            MoreRulesBox = new CheckedListBox();
+            openFileDialog1 = new OpenFileDialog();
+            jsonResumeCheck = new CheckBox();
             ((System.ComponentModel.ISupportInitialize)splitContainer1).BeginInit();
             splitContainer1.Panel1.SuspendLayout();
             splitContainer1.Panel2.SuspendLayout();
@@ -69,7 +73,7 @@
             // 
             // SendBtn
             // 
-            SendBtn.Location = new Point(28, 333);
+            SendBtn.Location = new Point(22, 404);
             SendBtn.Name = "SendBtn";
             SendBtn.Size = new Size(112, 34);
             SendBtn.TabIndex = 2;
@@ -108,6 +112,9 @@
             // 
             // splitContainer1.Panel1
             // 
+            splitContainer1.Panel1.Controls.Add(jsonResumeCheck);
+            splitContainer1.Panel1.Controls.Add(label1);
+            splitContainer1.Panel1.Controls.Add(textBox1);
             splitContainer1.Panel1.Controls.Add(ResumeLabl);
             splitContainer1.Panel1.Controls.Add(JsonCV);
             splitContainer1.Panel1.Controls.Add(Generate_Rsme);
@@ -127,6 +134,24 @@
             splitContainer1.SplitterDistance = 831;
             splitContainer1.TabIndex = 5;
             // 
+            // label1
+            // 
+            label1.AutoSize = true;
+            label1.Location = new Point(24, 312);
+            label1.Name = "label1";
+            label1.Size = new Size(183, 25);
+            label1.TabIndex = 7;
+            label1.Text = "Choose Json Resume:";
+            // 
+            // textBox1
+            // 
+            textBox1.Location = new Point(18, 345);
+            textBox1.Name = "textBox1";
+            textBox1.ReadOnly = true;
+            textBox1.Size = new Size(349, 31);
+            textBox1.TabIndex = 6;
+            textBox1.DoubleClick += textBox1_DoubleClick;
+            // 
             // ResumeLabl
             // 
             ResumeLabl.AutoSize = true;
@@ -135,6 +160,14 @@
             ResumeLabl.Size = new Size(157, 25);
             ResumeLabl.TabIndex = 5;
             ResumeLabl.Text = "Configure Resume";
+            // 
+            // MoreRulesBox
+            // 
+            MoreRulesBox.FormattingEnabled = true;
+            MoreRulesBox.Location = new Point(511, 370);
+            MoreRulesBox.Name = "MoreRulesBox";
+            MoreRulesBox.Size = new Size(180, 144);
+            MoreRulesBox.TabIndex = 7;
             // 
             // UpworkLabl
             // 
@@ -183,13 +216,21 @@
             UptextInput.Size = new Size(469, 153);
             UptextInput.TabIndex = 0;
             // 
-            // MoreRulesBox
+            // openFileDialog1
             // 
-            MoreRulesBox.FormattingEnabled = true;
-            MoreRulesBox.Location = new Point(511, 370);
-            MoreRulesBox.Name = "MoreRulesBox";
-            MoreRulesBox.Size = new Size(180, 144);
-            MoreRulesBox.TabIndex = 7;
+            openFileDialog1.FileName = "openFileDialog1";
+            // 
+            // jsonResumeCheck
+            // 
+            jsonResumeCheck.AutoSize = true;
+            jsonResumeCheck.Checked = true;
+            jsonResumeCheck.CheckState = CheckState.Checked;
+            jsonResumeCheck.Location = new Point(226, 310);
+            jsonResumeCheck.Name = "jsonResumeCheck";
+            jsonResumeCheck.Size = new Size(129, 29);
+            jsonResumeCheck.TabIndex = 8;
+            jsonResumeCheck.Text = "Use Default";
+            jsonResumeCheck.UseVisualStyleBackColor = true;
             // 
             // Form1
             // 
@@ -223,5 +264,9 @@
         private Label ResumeLabl;
         private Label UpworkLabl;
         private CheckedListBox MoreRulesBox;
+        private OpenFileDialog openFileDialog1;
+        private Label label1;
+        private TextBox textBox1;
+        private CheckBox jsonResumeCheck;
     }
 }
