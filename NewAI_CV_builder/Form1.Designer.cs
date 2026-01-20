@@ -34,12 +34,13 @@
             JsonCV = new TextBox();
             Generate_Rsme = new Button();
             splitContainer1 = new SplitContainer();
+            ResumeLabl = new Label();
+            UpworkLabl = new Label();
             Jobs_List = new ComboBox();
             Upwk_btn = new Button();
             UptextOutput = new TextBox();
             UptextInput = new TextBox();
-            ResumeLabl = new Label();
-            UpworkLabl = new Label();
+            MoreRulesBox = new CheckedListBox();
             ((System.ComponentModel.ISupportInitialize)splitContainer1).BeginInit();
             splitContainer1.Panel1.SuspendLayout();
             splitContainer1.Panel2.SuspendLayout();
@@ -116,6 +117,7 @@
             // 
             // splitContainer1.Panel2
             // 
+            splitContainer1.Panel2.Controls.Add(MoreRulesBox);
             splitContainer1.Panel2.Controls.Add(UpworkLabl);
             splitContainer1.Panel2.Controls.Add(Jobs_List);
             splitContainer1.Panel2.Controls.Add(Upwk_btn);
@@ -124,44 +126,6 @@
             splitContainer1.Size = new Size(1543, 746);
             splitContainer1.SplitterDistance = 831;
             splitContainer1.TabIndex = 5;
-            // 
-            // Jobs_List
-            // 
-            Jobs_List.FormattingEnabled = true;
-            Jobs_List.Location = new Point(473, 321);
-            Jobs_List.Name = "Jobs_List";
-            Jobs_List.Size = new Size(182, 33);
-            Jobs_List.TabIndex = 3;
-            Jobs_List.SelectedIndexChanged += Jobs_List_SelectedIndexChanged;
-            // 
-            // Upwk_btn
-            // 
-            Upwk_btn.Location = new Point(61, 321);
-            Upwk_btn.Name = "Upwk_btn";
-            Upwk_btn.Size = new Size(148, 34);
-            Upwk_btn.TabIndex = 2;
-            Upwk_btn.Text = "Send Prompt";
-            Upwk_btn.UseVisualStyleBackColor = true;
-            Upwk_btn.Click += Upwk_btn_Click;
-            // 
-            // UptextOutput
-            // 
-            UptextOutput.Location = new Point(61, 465);
-            UptextOutput.Multiline = true;
-            UptextOutput.Name = "UptextOutput";
-            UptextOutput.ReadOnly = true;
-            UptextOutput.ScrollBars = ScrollBars.Both;
-            UptextOutput.Size = new Size(469, 243);
-            UptextOutput.TabIndex = 1;
-            // 
-            // UptextInput
-            // 
-            UptextInput.Location = new Point(61, 123);
-            UptextInput.Multiline = true;
-            UptextInput.Name = "UptextInput";
-            UptextInput.ScrollBars = ScrollBars.Both;
-            UptextInput.Size = new Size(469, 153);
-            UptextInput.TabIndex = 0;
             // 
             // ResumeLabl
             // 
@@ -180,6 +144,52 @@
             UpworkLabl.Size = new Size(157, 25);
             UpworkLabl.TabIndex = 6;
             UpworkLabl.Text = "Configure Upwork";
+            // 
+            // Jobs_List
+            // 
+            Jobs_List.FormattingEnabled = true;
+            Jobs_List.Location = new Point(509, 323);
+            Jobs_List.Name = "Jobs_List";
+            Jobs_List.Size = new Size(182, 33);
+            Jobs_List.TabIndex = 3;
+            Jobs_List.SelectedIndexChanged += Jobs_List_SelectedIndexChanged;
+            // 
+            // Upwk_btn
+            // 
+            Upwk_btn.Location = new Point(61, 321);
+            Upwk_btn.Name = "Upwk_btn";
+            Upwk_btn.Size = new Size(148, 34);
+            Upwk_btn.TabIndex = 2;
+            Upwk_btn.Text = "Send Prompt";
+            Upwk_btn.UseVisualStyleBackColor = true;
+            Upwk_btn.Click += Upwk_btn_Click;
+            // 
+            // UptextOutput
+            // 
+            UptextOutput.Location = new Point(23, 477);
+            UptextOutput.Multiline = true;
+            UptextOutput.Name = "UptextOutput";
+            UptextOutput.ReadOnly = true;
+            UptextOutput.ScrollBars = ScrollBars.Both;
+            UptextOutput.Size = new Size(469, 243);
+            UptextOutput.TabIndex = 1;
+            // 
+            // UptextInput
+            // 
+            UptextInput.Location = new Point(61, 123);
+            UptextInput.Multiline = true;
+            UptextInput.Name = "UptextInput";
+            UptextInput.ScrollBars = ScrollBars.Both;
+            UptextInput.Size = new Size(469, 153);
+            UptextInput.TabIndex = 0;
+            // 
+            // MoreRulesBox
+            // 
+            MoreRulesBox.FormattingEnabled = true;
+            MoreRulesBox.Location = new Point(511, 370);
+            MoreRulesBox.Name = "MoreRulesBox";
+            MoreRulesBox.Size = new Size(180, 144);
+            MoreRulesBox.TabIndex = 7;
             // 
             // Form1
             // 
@@ -212,5 +222,6 @@
         private ComboBox Jobs_List;
         private Label ResumeLabl;
         private Label UpworkLabl;
+        private CheckedListBox MoreRulesBox;
     }
 }

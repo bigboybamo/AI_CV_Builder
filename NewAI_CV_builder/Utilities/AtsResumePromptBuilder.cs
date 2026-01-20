@@ -53,7 +53,7 @@ CANDIDATE JSON RESUME:
 """;
         }
 
-        public static string BuildUpwork(string jobDescription, string jobtype)
+        public static string BuildUpwork(string jobDescription, string jobtype, IEnumerable<string>? runtimeRules = null)
         {
             if (string.IsNullOrWhiteSpace(jobDescription))
                 throw new ArgumentException("Job description cannot be empty.", nameof(jobDescription));
@@ -61,20 +61,20 @@ CANDIDATE JSON RESUME:
             if (string.IsNullOrWhiteSpace(jobtype))
                 throw new ArgumentException("Job type cannot be empty.", nameof(jobtype));
 
-            // Normalise line endings
             jobDescription = jobDescription.Replace("\r\n", "\n");
 
             return jobtype switch
             {
                 "Web Developer" =>
-                    string.Format(UpworkPromptTemplates.WebDeveloperCoverLetter, jobDescription),
+                    UpworkPromptTemplates.Build(UpworkPromptTemplates.WebDeveloperCoverLetter, jobDescription, runtimeRules),
 
                 "Desktop Developer" =>
-                    string.Format(UpworkPromptTemplates.DesktopDeveloperCoverLetter, jobDescription),
+                    UpworkPromptTemplates.Build(UpworkPromptTemplates.DesktopDeveloperCoverLetter, jobDescription, runtimeRules),
 
                 _ =>
-                    string.Format(UpworkPromptTemplates.TechnicalWriterCoverLetter, jobDescription)
+                    UpworkPromptTemplates.Build(UpworkPromptTemplates.TechnicalWriterCoverLetter, jobDescription, runtimeRules)
             };
         }
+
     }
 }
