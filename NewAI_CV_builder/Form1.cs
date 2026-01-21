@@ -214,18 +214,28 @@ namespace NewAI_CV_builder
                 return;
             }
 
-            //Call the OpenAI API asynchronously and update the UI when done
+            if (string.IsNullOrWhiteSpace(textBox1.Text) && !jsonResumeCheck.Checked)
+            {
+                MessageBox.Show("Please select a json resume before sending.", "Input Required", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
 
             SendBtn.Enabled = false;
             TextOutput.Text = "Loading...";
-            //CallOpenAiAsync(TextInput.Text, apiKey).ContinueWith(task =>
-            //{
-            //    // Update the UI on the main thread
-            // call claude api asynchronously and update the UI when done
 
-            string resumeJson = File.ReadAllText(Environment.GetEnvironmentVariable("BASE_RESUME_FILE_NAME"));
+            string resumeJson = "";
+            string prompt = "";
 
-            string prompt = AtsResumePromptBuilder.Build(TextInput.Text, resumeJson);
+            if (jsonResumeCheck.Checked)
+            {
+                resumeJson = File.ReadAllText(Environment.GetEnvironmentVariable("BASE_RESUME_FILE_NAME"));
+                prompt = AtsResumePromptBuilder.Build(TextInput.Text, resumeJson);
+            }
+            else
+            {
+                resumeJson = File.ReadAllText(textBox1.Text);
+                prompt = AtsResumePromptBuilder.Build(TextInput.Text, resumeJson);
+            }
 
             CallClaudeAsync(prompt, claudeApiKey).ContinueWith(task =>
             {
@@ -382,6 +392,32 @@ namespace NewAI_CV_builder
                 }));
             });
 
+        }
+
+        private void textBox1_DoubleClick(object sender, EventArgs e)
+        {
+            try
+            {
+                // Prefer the designer OpenFileDialog if it exists, otherwise create a transient one.
+                var dialog = openFileDialog1 ?? new OpenFileDialog();
+
+                dialog.Title = "Select a file or link";
+                dialog.Filter = "All files (*.*)|*.*";
+                dialog.Multiselect = false;
+                dialog.CheckFileExists = false;
+
+                if (dialog.ShowDialog(this) != DialogResult.OK)
+                    return;
+
+                // Set the chosen path/link to the textbox
+                textBox1.Text = dialog.FileName;
+            }
+            catch (Exception ex)
+            {
+                Log.Warning(ex, "Failed to select file/link in textBox1 double-click");
+                MessageBox.Show(this, "Failed to select file or link:\n" + ex.Message,
+                    "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
     }
 }
