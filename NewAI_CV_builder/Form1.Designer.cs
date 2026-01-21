@@ -34,6 +34,7 @@
             JsonCV = new TextBox();
             Generate_Rsme = new Button();
             splitContainer1 = new SplitContainer();
+            jsonResumeCheck = new CheckBox();
             label1 = new Label();
             textBox1 = new TextBox();
             ResumeLabl = new Label();
@@ -44,7 +45,8 @@
             UptextOutput = new TextBox();
             UptextInput = new TextBox();
             openFileDialog1 = new OpenFileDialog();
-            jsonResumeCheck = new CheckBox();
+            openAICheckBox = new CheckBox();
+            claudeCheckBox = new CheckBox();
             ((System.ComponentModel.ISupportInitialize)splitContainer1).BeginInit();
             splitContainer1.Panel1.SuspendLayout();
             splitContainer1.Panel2.SuspendLayout();
@@ -107,7 +109,7 @@
             // 
             splitContainer1.BorderStyle = BorderStyle.Fixed3D;
             splitContainer1.IsSplitterFixed = true;
-            splitContainer1.Location = new Point(25, 21);
+            splitContainer1.Location = new Point(12, 39);
             splitContainer1.Name = "splitContainer1";
             // 
             // splitContainer1.Panel1
@@ -130,9 +132,21 @@
             splitContainer1.Panel2.Controls.Add(Upwk_btn);
             splitContainer1.Panel2.Controls.Add(UptextOutput);
             splitContainer1.Panel2.Controls.Add(UptextInput);
-            splitContainer1.Size = new Size(1543, 746);
-            splitContainer1.SplitterDistance = 831;
+            splitContainer1.Size = new Size(1577, 746);
+            splitContainer1.SplitterDistance = 849;
             splitContainer1.TabIndex = 5;
+            // 
+            // jsonResumeCheck
+            // 
+            jsonResumeCheck.AutoSize = true;
+            jsonResumeCheck.Checked = true;
+            jsonResumeCheck.CheckState = CheckState.Checked;
+            jsonResumeCheck.Location = new Point(226, 310);
+            jsonResumeCheck.Name = "jsonResumeCheck";
+            jsonResumeCheck.Size = new Size(129, 29);
+            jsonResumeCheck.TabIndex = 8;
+            jsonResumeCheck.Text = "Use Default";
+            jsonResumeCheck.UseVisualStyleBackColor = true;
             // 
             // label1
             // 
@@ -220,23 +234,37 @@
             // 
             openFileDialog1.FileName = "openFileDialog1";
             // 
-            // jsonResumeCheck
+            // openAICheckBox
             // 
-            jsonResumeCheck.AutoSize = true;
-            jsonResumeCheck.Checked = true;
-            jsonResumeCheck.CheckState = CheckState.Checked;
-            jsonResumeCheck.Location = new Point(226, 310);
-            jsonResumeCheck.Name = "jsonResumeCheck";
-            jsonResumeCheck.Size = new Size(129, 29);
-            jsonResumeCheck.TabIndex = 8;
-            jsonResumeCheck.Text = "Use Default";
-            jsonResumeCheck.UseVisualStyleBackColor = true;
+            openAICheckBox.AutoSize = true;
+            openAICheckBox.Location = new Point(728, 4);
+            openAICheckBox.Name = "openAICheckBox";
+            openAICheckBox.Size = new Size(99, 29);
+            openAICheckBox.TabIndex = 6;
+            openAICheckBox.Text = "OpenAI";
+            openAICheckBox.UseVisualStyleBackColor = true;
+            openAICheckBox.CheckedChanged += openAICheckBox_CheckedChanged;
+            // 
+            // claudeCheckBox
+            // 
+            claudeCheckBox.AutoSize = true;
+            claudeCheckBox.Checked = true;
+            claudeCheckBox.CheckState = CheckState.Checked;
+            claudeCheckBox.Location = new Point(890, 4);
+            claudeCheckBox.Name = "claudeCheckBox";
+            claudeCheckBox.Size = new Size(92, 29);
+            claudeCheckBox.TabIndex = 7;
+            claudeCheckBox.Text = "Claude";
+            claudeCheckBox.UseVisualStyleBackColor = true;
+            claudeCheckBox.CheckedChanged += claudeCheckBox_CheckedChanged;
             // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(10F, 25F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(1601, 797);
+            Controls.Add(claudeCheckBox);
+            Controls.Add(openAICheckBox);
             Controls.Add(splitContainer1);
             Name = "Form1";
             Text = "Form1";
@@ -247,6 +275,7 @@
             ((System.ComponentModel.ISupportInitialize)splitContainer1).EndInit();
             splitContainer1.ResumeLayout(false);
             ResumeLayout(false);
+            PerformLayout();
         }
 
         #endregion
@@ -268,5 +297,7 @@
         private Label label1;
         private TextBox textBox1;
         private CheckBox jsonResumeCheck;
+        private CheckBox openAICheckBox;
+        private CheckBox claudeCheckBox;
     }
 }

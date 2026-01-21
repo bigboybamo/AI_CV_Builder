@@ -10,7 +10,7 @@ namespace NewAI_CV_builder
 {
     public partial class Form1 : Form
     {
-        private readonly string? apiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY");
+        private readonly string? openAIApiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY");
         private readonly string? claudeApiKey = Environment.GetEnvironmentVariable("CLAUDIUS_API_KEY");
         private readonly System.Windows.Forms.Timer _debounceTimer = new System.Windows.Forms.Timer();
         private bool _isUpdating;
@@ -30,10 +30,14 @@ namespace NewAI_CV_builder
             _debounceTimer.Interval = 300; // ms
             _debounceTimer.Tick += DebounceTimer_Tick;
         }
-        private static readonly HttpClient _http = new HttpClient
+        private static readonly HttpClient _httpClaude = new HttpClient
         {
-            //BaseAddress = new Uri("https://api.openai.com/")
             BaseAddress = new Uri("https://api.anthropic.com/")
+        };
+
+        private static readonly HttpClient _httpOpenAI = new HttpClient
+        {
+            BaseAddress = new Uri("https://api.openai.com/")
         };
 
         private void DebounceTimer_Tick(object sender, EventArgs e)
@@ -74,7 +78,7 @@ namespace NewAI_CV_builder
 
             try
             {
-                using var resp = await _http.SendAsync(msg).ConfigureAwait(false);
+                using var resp = await _httpOpenAI.SendAsync(msg).ConfigureAwait(false);
                 var json = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
 
                 Log.Debug("HTTP response received. StatusCode={StatusCode}, ResponseSize={ResponseSizeBytes}", resp.StatusCode, json?.Length ?? 0);
@@ -151,7 +155,7 @@ namespace NewAI_CV_builder
 
             try
             {
-                using var resp = await _http.SendAsync(msg).ConfigureAwait(false);
+                using var resp = await _httpClaude.SendAsync(msg).ConfigureAwait(false);
                 var json = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
                 Log.Debug("HTTP response received. StatusCode={StatusCode}, ResponseSize={ResponseSizeBytes}", resp.StatusCode, json?.Length ?? 0);
 
@@ -196,7 +200,7 @@ namespace NewAI_CV_builder
             using var msg = new HttpRequestMessage(HttpMethod.Get, "v1/models");
             msg.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
 
-            using var resp = await _http.SendAsync(msg).ConfigureAwait(false);
+            using var resp = await _httpClaude.SendAsync(msg).ConfigureAwait(false);
             var json = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
 
             if (!resp.IsSuccessStatusCode)
@@ -237,15 +241,37 @@ namespace NewAI_CV_builder
                 prompt = AtsResumePromptBuilder.Build(TextInput.Text, resumeJson);
             }
 
-            CallClaudeAsync(prompt, claudeApiKey).ContinueWith(task =>
+            if (openAICheckBox.Checked)
             {
-                // Update the UI on the main thread
-                this.Invoke((Action)(() =>
+                CallOpenAiAsync(prompt, openAIApiKey).ContinueWith(task =>
                 {
-                    TextOutput.Text = task.Result;
-                    SendBtn.Enabled = true;
-                }));
-            });
+                    // Update the UI on the main thread
+                    this.Invoke((Action)(() =>
+                    {
+                        TextOutput.Text = task.Result;
+                        SendBtn.Enabled = true;
+                    }));
+                });
+            }
+            else if (claudeCheckBox.Checked)
+            {
+                CallClaudeAsync(prompt, claudeApiKey).ContinueWith(task =>
+                {
+                    // Update the UI on the main thread
+                    this.Invoke((Action)(() =>
+                    {
+                        TextOutput.Text = task.Result;
+                        SendBtn.Enabled = true;
+                    }));
+                });
+            }
+            else
+            {
+                MessageBox.Show("Please select an AI model (OpenAI or Claude).", "Input Required", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                SendBtn.Enabled = true;
+                TextOutput.Text = "";
+                return;
+            }               
         }
 
         private void JsonCV_DoubleClick(object sender, EventArgs e)
@@ -373,25 +399,55 @@ namespace NewAI_CV_builder
 
             string prompt = AtsResumePromptBuilder.BuildUpwork(UptextInput.Text, selectedJob, runtimeRules);
 
-            CallClaudeAsync(prompt, claudeApiKey).ContinueWith(task =>
+            if (openAICheckBox.Checked)
             {
-                // Update the UI on the main thread
-                this.Invoke((Action)(() =>
+                CallOpenAiAsync(prompt, openAIApiKey).ContinueWith(task =>
                 {
-                    UptextOutput.Text = task.Result;
-                    try
+                    // Update the UI on the main thread
+                    this.Invoke((Action)(() =>
                     {
-                        if (!string.IsNullOrEmpty(UptextOutput.Text))
-                            Clipboard.SetText(UptextOutput.Text);
-                    }
-                    catch (Exception ex)
+                        UptextOutput.Text = task.Result;
+                        try
+                        {
+                            if (!string.IsNullOrEmpty(UptextOutput.Text))
+                                Clipboard.SetText(UptextOutput.Text);
+                        }
+                        catch (Exception ex)
+                        {
+                            Log.Warning(ex, "Failed to copy UptextOutput to clipboard");
+                        }
+                        Upwk_btn.Enabled = true;
+                    }));
+                });
+            }
+            else if (claudeCheckBox.Checked)
+            {
+                CallClaudeAsync(prompt, claudeApiKey).ContinueWith(task =>
+                {
+                    // Update the UI on the main thread
+                    this.Invoke((Action)(() =>
                     {
-                        Log.Warning(ex, "Failed to copy UptextOutput to clipboard");
-                    }
-                    Upwk_btn.Enabled = true;
-                }));
-            });
-
+                        UptextOutput.Text = task.Result;
+                        try
+                        {
+                            if (!string.IsNullOrEmpty(UptextOutput.Text))
+                                Clipboard.SetText(UptextOutput.Text);
+                        }
+                        catch (Exception ex)
+                        {
+                            Log.Warning(ex, "Failed to copy UptextOutput to clipboard");
+                        }
+                        Upwk_btn.Enabled = true;
+                    }));
+                });
+            }
+            else
+            {
+                MessageBox.Show("Please select an AI model (OpenAI or Claude).", "Input Required", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                SendBtn.Enabled = true;
+                TextOutput.Text = "";
+                return;
+            }
         }
 
         private void textBox1_DoubleClick(object sender, EventArgs e)
@@ -417,6 +473,22 @@ namespace NewAI_CV_builder
                 Log.Warning(ex, "Failed to select file/link in textBox1 double-click");
                 MessageBox.Show(this, "Failed to select file or link:\n" + ex.Message,
                     "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void claudeCheckBox_CheckedChanged(object sender, EventArgs e)
+        {
+            if (claudeCheckBox.Checked)
+            {
+                openAICheckBox.Checked = false;
+            }
+        }
+
+        private void openAICheckBox_CheckedChanged(object sender, EventArgs e)
+        {
+            if(openAICheckBox.Checked)
+            {
+                claudeCheckBox.Checked = false;
             }
         }
     }
