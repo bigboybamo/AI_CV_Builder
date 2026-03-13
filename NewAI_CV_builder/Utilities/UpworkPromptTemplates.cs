@@ -169,19 +169,21 @@ namespace NewAI_CV_builder.Utilities
                     Ola
 ";
 
-        public static string Build(string template, string jobDescription, IEnumerable<string>? runtimeRules = null)
+        public static string Build(string template, UpworkProposalRequest request)
         {
             if (!template.Contains(GenRulesToken))
                 throw new InvalidOperationException($"Template is missing the token: {GenRulesToken}");
 
-            jobDescription = jobDescription.Replace("\r\n", "\n");
-
-            var formatted = string.Format(template, jobDescription)
+            var formatted = string.Format(template, request.JobDescription)
                 .Replace("\r\n", "\n");
 
-            var rulesBlock = PromptRules.BuildRulesBlock(runtimeRules);
+            var rulesBlock = PromptRules.BuildRulesBlock(request.RuntimeRules);
+            var result = formatted.Replace(GenRulesToken, rulesBlock);
 
-            return formatted.Replace(GenRulesToken, rulesBlock);
+            if (!string.IsNullOrWhiteSpace(request.LoomUrl))
+                result += $"\n\nInclude the following Loom video link near the end of the proposal, just before the sign-off, with a natural sentence such as \"Here's a short video of me so you can get a feel for how I communicate: {request.LoomUrl}\"";
+
+            return result;
         }
     }
 
