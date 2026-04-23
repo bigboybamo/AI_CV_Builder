@@ -12,6 +12,8 @@ namespace NewAI_CV_builder
     {
         private readonly string? openAIApiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY");
         private readonly string? claudeApiKey = Environment.GetEnvironmentVariable("CLAUDIUS_API_KEY");
+        private readonly string? developerLoomUrl = Environment.GetEnvironmentVariable("DEVELOPER_LOOM_URL");
+        private readonly string? technicalWriterLoomUrl = Environment.GetEnvironmentVariable("TECHNICAL_WRITER_LOOM_URL");
         private readonly System.Windows.Forms.Timer _debounceTimer = new System.Windows.Forms.Timer();
         private bool _isUpdating;
         private readonly List<string> _jobTitles;
@@ -396,7 +398,15 @@ namespace NewAI_CV_builder
 
             var selectedJob = Jobs_List.SelectedValue.ToString();
 
-            string prompt = AtsResumePromptBuilder.BuildUpwork(UptextInput.Text, selectedJob, runtimeRules);
+            var loomUrl = selectedJob == "Technical Writer" ? technicalWriterLoomUrl : developerLoomUrl;
+
+            string prompt = AtsResumePromptBuilder.BuildUpwork(new UpworkProposalRequest
+            {
+                JobDescription = UptextInput.Text,
+                JobType = selectedJob,
+                LoomUrl = loomUrl,
+                RuntimeRules = runtimeRules
+            });
 
             if (openAICheckBox.Checked)
             {
