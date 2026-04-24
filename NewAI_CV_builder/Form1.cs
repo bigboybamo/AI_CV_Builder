@@ -21,7 +21,7 @@ namespace NewAI_CV_builder
         public Form1()
         {
             InitializeComponent();
-            _jobTitles = new List<string> { "-- Select a job title --", "Web Developer", "Desktop Developer", "Technical Writer" };
+            _jobTitles = new List<string> { "-- Select a job title --", "Web Developer", "Desktop Developer", "Technical Writer", "AI Developer" };
 
             MoreRulesBox.DisplayMember = nameof(CheckBoxRuleItem.Text);
             MoreRulesBox.ValueMember = nameof(CheckBoxRuleItem.Value);

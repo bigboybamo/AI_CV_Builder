@@ -1,3 +1,12 @@
 # Ignore local environment files
 .env
+
+# Local task planning
+task.md
 .vs
+# Claude setup - never commit secrets or state
+.claude/setup.log
+.claude/validate.log
+.claude/.setup-state
+.claude/project.env
+.claude/enabled-integrations
