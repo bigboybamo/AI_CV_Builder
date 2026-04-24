@@ -169,6 +169,57 @@ namespace NewAI_CV_builder.Utilities
                     Ola
 ";
 
+        public const string AiDeveloperCoverLetter =
+            @"Create a cover letter for an AI Engineer role using the following job description:
+
+            {0}
+
+            Lead with my ability to assess business problems and design practical AI solutions using LLMs, agents, RAG pipelines, and API integrations, not just implement what I'm told.
+
+            Highlight my hands-on experience with Claude API and OpenAI API in production environments, including prompt design, structured outputs, response validation, and fallback handling.
+
+            Mention my proficiency with AI-assisted coding tools, particularly Claude Code and OpenAI Codex, and how I use them to accelerate delivery, maintain code quality, and ship faster without cutting corners.
+
+            Include my current hands-on experience operating AI-driven development workflows: managing multiple Claude Code terminal sessions simultaneously, reviewing and approving AI-generated tool calls, deploying to cloud platforms like Railway, Fly.io, and Google Cloud Run, triaging bugs from UAT, and knowing when to escalate versus act independently. This gives me an operator-level understanding of how AI coding agents behave in practice, not just theory.
+
+            Emphasise my production discipline: observability, error handling, maintainable code, and clear documentation. I build things that last beyond the prototype.
+
+            Highlight my experience delivering enterprise software in regulated and high-availability environments:
+            https://firstdirect2.firstbanknigeria.com
+            https://www.fintellia.com/core-banking/
+            https://ijele.novohealthafrica.org/
+
+            Reference my GitHub and technical writing portfolio to demonstrate implementation depth and architecture thinking:
+            https://github.com/bigboybamo
+            https://dev.to/bigboybamo
+
+            Keep the tone direct and grounded, no hype, no buzzword stacking. Focus on real-world AI delivery with measurable business value. Show I can work with stakeholders, translate ambiguous requirements into working systems, and ship AI features users can trust.
+<<GEN_RULES>>
+
+            Similar to
+
+            Hey Team,
+            I am a software engineer with hands-on experience designing and delivering AI-enabled solutions, from LLM integrations and RAG pipelines to agent-based workflows, using Claude API and OpenAI API in production environments.
+
+            I also work extensively with AI-assisted coding tools, particularly Claude Code and OpenAI Codex. Beyond building with them, I currently operate AI-driven development workflows professionally (https://www.upwork.com/jobs/~022027119110980960386), giving me operator-level insight into how AI coding agents behave under real conditions, where they succeed, and where they need guardrails.
+
+            I have delivered enterprise software in domains where reliability and data quality matter, including First Bank Of Nigeria, Novo Health Africa, and fintech platforms. I know what it takes to ship AI features that hold up under real conditions, not just demos.
+
+            My focus goes beyond integration: I assess business problems first, then design the right AI approach, whether that is structured prompting, retrieval-augmented generation, agent orchestration, or a simpler solution that gets the job done reliably.
+
+            I make AI features production-ready: response validation, logging, fallback handling, observability, and maintainable code paths that teams can own long-term.
+
+            You can review my public work here:
+            - GitHub: https://github.com/bigboybamo
+            - Technical articles: https://dev.to/bigboybamo
+
+            I can help you move from AI prototype to a dependable feature your users and business can rely on.
+
+            Best,
+            Ola
+
+            ";
+
         public static string Build(string template, UpworkProposalRequest request)
         {
             if (!template.Contains(GenRulesToken))
