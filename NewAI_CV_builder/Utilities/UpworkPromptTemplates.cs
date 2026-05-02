@@ -232,7 +232,13 @@ namespace NewAI_CV_builder.Utilities
             var result = formatted.Replace(GenRulesToken, rulesBlock);
 
             if (!string.IsNullOrWhiteSpace(request.LoomUrl))
-                result += $"\n\nInclude the following Loom video link near the end of the proposal, just before the sign-off, with a natural sentence such as \"Here's a short video of me so you can get a feel for how I communicate: {request.LoomUrl}\"";
+            {
+                var loomIntro = request.JobType == "AI Developer"
+                    ? "Here's a short video of me so you can get a feel for how I communicate, as well as my AI agent workflow"
+                    : "Here's a short video of me so you can get a feel for how I communicate";
+
+                result += $"\n\nInclude the following Loom video link near the end of the proposal, just before the sign-off, with a natural sentence such as \"{loomIntro}: {request.LoomUrl}\"";
+            }
 
             return result;
         }
