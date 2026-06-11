@@ -7,6 +7,7 @@ namespace NewAI_CV_builder.Utilities
     public static class UpworkPromptTemplates
     {
         private const string GenRulesToken = "<<GEN_RULES>>";
+        private const string ProjectHighlightsToken = "<<PROJECT_HIGHLIGHTS>>";
 
         public const string WebDeveloperCoverLetter =
             @"Create an upwork proposal for a Web Developer role using the following job description:
@@ -184,10 +185,7 @@ namespace NewAI_CV_builder.Utilities
 
             Emphasise my production discipline: observability, error handling, maintainable code, and clear documentation. I build things that last beyond the prototype.
 
-            Highlight my experience delivering enterprise software in regulated and high-availability environments:
-            https://firstdirect2.firstbanknigeria.com
-            https://www.fintellia.com/core-banking/
-            https://ijele.novohealthafrica.org/
+<<PROJECT_HIGHLIGHTS>>
 
             Reference my GitHub and technical writing portfolio to demonstrate implementation depth and architecture thinking:
             https://github.com/bigboybamo
@@ -203,7 +201,13 @@ namespace NewAI_CV_builder.Utilities
 
             I also work extensively with AI-assisted coding tools, particularly Claude Code and OpenAI Codex. Beyond building with them, I currently operate AI-driven development workflows professionally (https://www.upwork.com/jobs/~022027119110980960386), giving me operator-level insight into how AI coding agents behave under real conditions, where they succeed, and where they need guardrails.
 
-            I have delivered enterprise software in domains where reliability and data quality matter, including First Bank Of Nigeria, Novo Health Africa, and fintech platforms. I know what it takes to ship AI features that hold up under real conditions, not just demos.
+            Here are a few AI-powered applications I have recently designed and shipped:
+
+            - Modak Web — [short project description]. You can see it here: [picture link]
+            - Help Me Rad Bridge — [short project description]. You can see it here: [picture link]
+            - Job Search Builder — [short project description]. You can see it here: [picture link]
+
+            I know what it takes to ship AI features that hold up under real conditions, not just demos.
 
             My focus goes beyond integration: I assess business problems first, then design the right AI approach, whether that is structured prompting, retrieval-augmented generation, agent orchestration, or a simpler solution that gets the job done reliably.
 
@@ -231,6 +235,9 @@ namespace NewAI_CV_builder.Utilities
             var rulesBlock = PromptRules.BuildRulesBlock(request.RuntimeRules);
             var result = formatted.Replace(GenRulesToken, rulesBlock);
 
+            if (result.Contains(ProjectHighlightsToken))
+                result = result.Replace(ProjectHighlightsToken, BuildProjectHighlightsBlock(request.ProjectHighlights));
+
             if (!string.IsNullOrWhiteSpace(request.LoomUrl))
             {
                 var loomIntro = request.JobType == "AI Developer"
@@ -241,6 +248,34 @@ namespace NewAI_CV_builder.Utilities
             }
 
             return result;
+        }
+
+        private static string BuildProjectHighlightsBlock(IEnumerable<ProjectHighlight>? highlights)
+        {
+            if (highlights is null)
+                return string.Empty;
+
+            var sb = new StringBuilder();
+
+            foreach (var highlight in highlights)
+            {
+                if (string.IsNullOrWhiteSpace(highlight.PictureUrl) && string.IsNullOrWhiteSpace(highlight.Description))
+                    continue;
+
+                sb.Append($"\n{highlight.Name}: {highlight.Description}");
+
+                if (!string.IsNullOrWhiteSpace(highlight.PictureUrl))
+                    sb.Append($"\nPicture: {highlight.PictureUrl}");
+
+                sb.Append('\n');
+            }
+
+            if (sb.Length == 0)
+                return string.Empty;
+
+            return "Highlight the following AI projects I have personally built and shipped. " +
+                   "Weave each description in naturally and include the picture link for each project so the client can see the application:\n"
+                   + sb.ToString().TrimEnd();
         }
     }
 

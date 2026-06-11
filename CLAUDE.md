@@ -146,6 +146,12 @@ Secrets are loaded from a `.env` file in `NewAI_CV_builder/` at startup via `Dot
 | `DEVELOPER_LOOM_URL` | Loom video URL appended to Web/Desktop Developer proposals |
 | `TECHNICAL_WRITER_LOOM_URL` | Loom video URL appended to Technical Writer proposals |
 | `AI_DEVELOPER_LOOM_URL` | Loom video URL appended to AI Developer proposals |
+| `MODAK_WEB_PIC` | Google Drive link to a picture of the Modak Web application (AI Developer proposal highlight) |
+| `MODAK_WEB_DESC` | Short description of the Modak Web project (AI Developer proposal highlight) |
+| `HELP_ME_RAD_BRIDGE_PIC` | Google Drive link to a picture of the Help Me Rad Bridge application (AI Developer proposal highlight) |
+| `HELP_ME_RAD_BRIDGE_DESC` | Short description of the Help Me Rad Bridge project (AI Developer proposal highlight) |
+| `JOB_SEARCH_BUILDER_PIC` | Google Drive link to a picture of the Job Search Builder application (AI Developer proposal highlight) |
+| `JOB_SEARCH_BUILDER_DESC` | Short description of the Job Search Builder project (AI Developer proposal highlight) |
 
 ---
 
