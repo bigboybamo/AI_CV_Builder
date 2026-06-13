@@ -23,11 +23,15 @@ namespace NewAI_CV_builder.Utilities
             Fintellia (core banking platform):
             https://www.fintellia.com/core-banking/
 
-            Novodes (MultiRepo Manager)
-
             Novo Health – Ijele HMO application:
             https://ijele.novohealthafrica.org/
 
+
+            My articles on C#/.NET Programming:
+            https://dev.to/bigboybamo/part-1-high-volume-ticket-booking-system-using-c-ef-core-redis-cache-and-sql-server-3oc
+            https://dev.to/bigboybamo/part-2-high-volume-ticket-booking-system-using-c-ef-core-redis-cache-and-sql-server-6jd
+            https://dev.to/bigboybamo/using-mockaroo-and-entity-framework-to-seed-sample-data-for-net-applications-2pdg
+            
             Keep it concise, avoid jargon, and emphasise the real-world systems and links. Make sure it looks like a proposal and NOT a Cover letter 
 <<GEN_RULES>>
 
@@ -40,13 +44,6 @@ namespace NewAI_CV_builder.Utilities
                 I've worked on a few Winforms desktop applications in my time and even have my own personal pet project you can check out https://github.com/bigboybamo/Text2speeech
 
                 I also, recently completed a job here on upwork with the same technologies, check that out here https://www.upwork.com/jobs/~021980188839600873740
-
-                I've also written several guides on configuring installers for desktop applications;
-                https://dev.to/bigboybamo/how-to-create-an-installer-for-a-winforms-application-using-visual-studio-and-advanced-4lln
-                https://dev.to/bigboybamo/how-to-create-an-installer-for-a-winforms-application-using-clickonce-for-visual-studio-2022-3272
-                https://dev.to/bigboybamo/how-to-create-an-installer-for-a-winforms-application-using-wix-for-visual-studio-2022-1c47
-
-                I've worked on 2 or 3 Web API projects that used CQRS pattern. Though they properietary code, I am happy to discuss them during an interview.
 
                 I am available for full time engagment in the coming weeks. I am also open to real time communication, so no issues there.
 
