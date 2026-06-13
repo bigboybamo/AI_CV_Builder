@@ -8,6 +8,7 @@ namespace NewAI_CV_builder.Utilities
     {
         private const string GenRulesToken = "<<GEN_RULES>>";
         private const string ProjectHighlightsToken = "<<PROJECT_HIGHLIGHTS>>";
+        private const string JobSearchBuilderToken = "<<JOB_SEARCH_BUILDER>>";
 
         public const string WebDeveloperCoverLetter =
             @"Create an upwork proposal for a Web Developer role using the following job description:
@@ -71,7 +72,7 @@ namespace NewAI_CV_builder.Utilities
 
             Be sure to mention my work on the Product Match application:
             https://dataladder.com/products/product-match/
-
+<<JOB_SEARCH_BUILDER>>
             My Text-to-Speech desktop application:
             https://github.com/bigboybamo/Text2speeech
 
@@ -90,16 +91,14 @@ namespace NewAI_CV_builder.Utilities
 
             Hey Team,
 
-            I specialize in Software development (.NET) and I've applied these skills in enterprise environments such as Novo Health Africa (healthcare systems), First Bank Of Nigeria (Nigeria's top/ oldest bank) and several other Fintechs. Most of my work has revolved around working on and improving existing systems.
+            My name is Ola and I'm an experienced Desktop Software Engineer. Most of my work has revolved around working on and improving existing systems.
 
-            I've worked on a few Winforms desktop applications in my time and even have my own personal pet project you can check out https://github.com/bigboybamo/Text2speeech
+            I even have my own personal pet project you can check out https://github.com/bigboybamo/Text2speeech
 
             I've also written several guides on configuring installers for desktop applications;
             https://dev.to/bigboybamo/how-to-create-an-installer-for-a-winforms-application-using-visual-studio-and-advanced-4lln
             https://dev.to/bigboybamo/how-to-create-an-installer-for-a-winforms-application-using-clickonce-for-visual-studio-2022-3272
             https://dev.to/bigboybamo/how-to-create-an-installer-for-a-winforms-application-using-wix-for-visual-studio-2022-1c47
-
-            I also regularly make contributions to the official .NET documentation in my free time https://github.com/dotnet/docs/pulls?q=is%3Apr+is%3Aclosed+author%3Abigboybamo.
 
             Expect the following if you hire me:
             1. 100% effort
@@ -197,9 +196,9 @@ namespace NewAI_CV_builder.Utilities
             Similar to
 
             Hey Team,
-            I am a software engineer with hands-on experience designing and delivering AI-enabled solutions, from LLM integrations and RAG pipelines to agent-based workflows, using Claude API and OpenAI API in production environments.
+            My name is Ola and I'm an experienced AI Software Developer.
 
-            I also work extensively with AI-assisted coding tools, particularly Claude Code and OpenAI Codex. Beyond building with them, I currently operate AI-driven development workflows professionally (https://www.upwork.com/jobs/~022027119110980960386), giving me operator-level insight into how AI coding agents behave under real conditions, where they succeed, and where they need guardrails.
+            I work extensively with AI-assisted coding tools, particularly Claude Code and OpenAI Codex. Beyond building with them, I currently operate AI-driven development workflows professionally (https://www.upwork.com/jobs/~022027119110980960386), giving me operator-level insight into how AI coding agents behave under real conditions, where they succeed, and where they need guardrails.
 
             Here are a few AI-powered applications I have recently designed and shipped:
 
@@ -238,6 +237,9 @@ namespace NewAI_CV_builder.Utilities
             if (result.Contains(ProjectHighlightsToken))
                 result = result.Replace(ProjectHighlightsToken, BuildProjectHighlightsBlock(request.ProjectHighlights));
 
+            if (result.Contains(JobSearchBuilderToken))
+                result = result.Replace(JobSearchBuilderToken, BuildDesktopHighlightBlock(request.ProjectHighlights));
+
             if (!string.IsNullOrWhiteSpace(request.LoomUrl))
             {
                 var loomIntro = request.JobType == "AI Developer"
@@ -248,6 +250,32 @@ namespace NewAI_CV_builder.Utilities
             }
 
             return result;
+        }
+
+        private static string BuildDesktopHighlightBlock(IEnumerable<ProjectHighlight>? highlights)
+        {
+            if (highlights is null)
+                return string.Empty;
+
+            var sb = new StringBuilder();
+
+            foreach (var highlight in highlights)
+            {
+                if (string.IsNullOrWhiteSpace(highlight.PictureUrl) && string.IsNullOrWhiteSpace(highlight.Description))
+                    continue;
+
+                sb.Append($"\n            Be sure to mention my work on the {highlight.Name} application:");
+
+                if (!string.IsNullOrWhiteSpace(highlight.Description))
+                    sb.Append($"\n            {highlight.Description}");
+
+                if (!string.IsNullOrWhiteSpace(highlight.PictureUrl))
+                    sb.Append($"\n            {highlight.PictureUrl}");
+
+                sb.Append('\n');
+            }
+
+            return sb.ToString();
         }
 
         private static string BuildProjectHighlightsBlock(IEnumerable<ProjectHighlight>? highlights)

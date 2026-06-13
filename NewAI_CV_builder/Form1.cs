@@ -412,14 +412,20 @@ namespace NewAI_CV_builder
                 _ => developerLoomUrl
             };
 
-            var projectHighlights = selectedJob == "AI Developer"
-                ? new List<ProjectHighlight>
+            var projectHighlights = selectedJob switch
+            {
+                "AI Developer" => new List<ProjectHighlight>
                 {
                     new() { Name = "Modak Web", PictureUrl = modakWebPic, Description = modakWebDesc },
                     new() { Name = "Help Me Rad Bridge", PictureUrl = helpMeRadBridgePic, Description = helpMeRadBridgeDesc },
                     new() { Name = "Job Search Builder", PictureUrl = jobSearchBuilderPic, Description = jobSearchBuilderDesc }
-                }
-                : null;
+                },
+                "Desktop Developer" => new List<ProjectHighlight>
+                {
+                    new() { Name = "Job Search Builder", PictureUrl = jobSearchBuilderPic, Description = jobSearchBuilderDesc }
+                },
+                _ => null
+            };
 
             string prompt = AtsResumePromptBuilder.BuildUpwork(new UpworkProposalRequest
             {
