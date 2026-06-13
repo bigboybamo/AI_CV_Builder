@@ -15,6 +15,12 @@ namespace NewAI_CV_builder
         private readonly string? developerLoomUrl = Environment.GetEnvironmentVariable("DEVELOPER_LOOM_URL");
         private readonly string? technicalWriterLoomUrl = Environment.GetEnvironmentVariable("TECHNICAL_WRITER_LOOM_URL");
         private readonly string? aiDeveloperLoomUrl = Environment.GetEnvironmentVariable("AI_DEVELOPER_LOOM_URL");
+        private readonly string? modakWebPic = Environment.GetEnvironmentVariable("MODAK_WEB_PIC");
+        private readonly string? modakWebDesc = Environment.GetEnvironmentVariable("MODAK_WEB_DESC");
+        private readonly string? helpMeRadBridgePic = Environment.GetEnvironmentVariable("HELP_ME_RAD_BRIDGE_PIC");
+        private readonly string? helpMeRadBridgeDesc = Environment.GetEnvironmentVariable("HELP_ME_RAD_BRIDGE_DESC");
+        private readonly string? jobSearchBuilderPic = Environment.GetEnvironmentVariable("JOB_SEARCH_BUILDER_PIC");
+        private readonly string? jobSearchBuilderDesc = Environment.GetEnvironmentVariable("JOB_SEARCH_BUILDER_DESC");
         private readonly System.Windows.Forms.Timer _debounceTimer = new System.Windows.Forms.Timer();
         private bool _isUpdating;
         private readonly List<string> _jobTitles;
@@ -406,12 +412,28 @@ namespace NewAI_CV_builder
                 _ => developerLoomUrl
             };
 
+            var projectHighlights = selectedJob switch
+            {
+                "AI Developer" => new List<ProjectHighlight>
+                {
+                    new() { Name = "Modak Web", PictureUrl = modakWebPic, Description = modakWebDesc },
+                    new() { Name = "Help Me Rad Bridge", PictureUrl = helpMeRadBridgePic, Description = helpMeRadBridgeDesc },
+                    new() { Name = "Job Search Builder", PictureUrl = jobSearchBuilderPic, Description = jobSearchBuilderDesc }
+                },
+                "Desktop Developer" => new List<ProjectHighlight>
+                {
+                    new() { Name = "Job Search Builder", PictureUrl = jobSearchBuilderPic, Description = jobSearchBuilderDesc }
+                },
+                _ => null
+            };
+
             string prompt = AtsResumePromptBuilder.BuildUpwork(new UpworkProposalRequest
             {
                 JobDescription = UptextInput.Text,
                 JobType = selectedJob,
                 LoomUrl = loomUrl,
-                RuntimeRules = runtimeRules
+                RuntimeRules = runtimeRules,
+                ProjectHighlights = projectHighlights
             });
 
             if (openAICheckBox.Checked)
