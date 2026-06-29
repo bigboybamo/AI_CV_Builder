@@ -22,6 +22,14 @@ namespace NewAI_CV_builder.Utilities
 Task:
 1. Act like a sophisticated modern Applicant Tracking System (ATS), trained on the filtering rules and logic used by Greenhouse, Lever, SmartRecruiters, Workable, BambooHR, BreezyHR and Taleo.
 2. Rewrite the "work" -> "highlights" of the resume JSON to better align with the job description and achieve a high ATS ranking.
+3. Fill in every placeholder token in the resume JSON with a concrete value chosen from the job description.
+
+Placeholder rules:
+- The resume JSON is an agnostic template that contains placeholder tokens written in UPPERCASE inside square brackets, e.g. [LANGUAGE_1], [BACKEND_FRAMEWORK], [DATABASE_1].
+- Replace EVERY such token with a real, specific technology, tool, language, or value that matches the stack and requirements in the job description (e.g. [LANGUAGE_1] -> "Python", [DATABASE_1] -> "PostgreSQL").
+- This applies everywhere tokens appear, especially the "skills" -> "keywords" arrays.
+- The final JSON MUST NOT contain any square-bracket placeholder tokens. Do not leave, invent, or add new bracketed tokens.
+- Choose values that are believable and consistent with the candidate's experience; do not duplicate the same technology across unrelated skill groups.
 
 Optimisation goals:
 - Increase keyword match rate with the job description
@@ -39,7 +47,7 @@ Output rules:
 - Return ONLY the full edited JSON
 - Do NOT wrap the output in a markdown code block
 - Keep the JSON schema/structure the same
-- Edit ONLY text inside work -> highlights
+- Edit text inside work -> highlights and replace all placeholder tokens (including in skills -> keywords); do not otherwise restructure the JSON
 
 JOB DESCRIPTION:
 <<<
