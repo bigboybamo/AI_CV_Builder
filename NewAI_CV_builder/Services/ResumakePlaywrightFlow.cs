@@ -1,20 +1,23 @@
-﻿using Microsoft.Playwright;
+using Microsoft.Playwright;
 using Serilog;
-using System.Diagnostics;
+using System.Net;
 using System.Text;
+using System.Text.Json;
 
 namespace NewAI_CV_builder.Services
 {
     public static class ResumakePlaywrightFlow
     {
         /// <summary>
-        /// Takes resume JSON (e.g., JSON Resume schema), imports into resumake.io,
-        /// clicks Make, and saves the generated PDF to outputPdfPath.
+        /// Takes resume JSON (JSON Resume schema), renders it into a styled HTML
+        /// document (ported from generate_resume.py) and prints it to a PDF at
+        /// <paramref name="outputPdfFilePath"/> using headless Chromium via Playwright.
+        /// All highlights from every job are always rendered — nothing is dropped.
         /// </summary>
         public static async Task GeneratePdfFromJsonAsync(
-     string resumeJson,
-     string outputPdfFilePath,
-     bool headless = true)
+            string resumeJson,
+            string outputPdfFilePath,
+            bool headless = true)
         {
             if (string.IsNullOrWhiteSpace(resumeJson))
                 throw new ArgumentException("Resume JSON is empty.", nameof(resumeJson));
@@ -29,156 +32,249 @@ namespace NewAI_CV_builder.Services
 
             Directory.CreateDirectory(outputDir);
 
-            var tempJsonPath = Path.Combine(Path.GetTempPath(), $"resumake-{Guid.NewGuid():N}.json");
-            await File.WriteAllTextAsync(
-                tempJsonPath,
-                resumeJson,
-                new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+            JsonDocument document;
+            try
+            {
+                document = JsonDocument.Parse(resumeJson);
+            }
+            catch (JsonException ex)
+            {
+                Log.Error(ex, "Resume JSON could not be parsed.");
+                throw new ArgumentException("Resume JSON is not valid JSON.", nameof(resumeJson), ex);
+            }
 
             try
             {
-                Log.Information("Starting Playwright browser automation for resumake.io...");
-                using var playwright = await Playwright.CreateAsync();
+                var html = RenderHtml(document.RootElement);
 
+                Log.Information("Rendering resume PDF via headless Chromium to {OutputPath}...", outputPdfFilePath);
+                using var playwright = await Playwright.CreateAsync().ConfigureAwait(false);
+
+                // PDF generation requires headless Chromium.
                 await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
                 {
-                    Headless = headless,
-                    SlowMo = 200
-                });
+                    Headless = headless
+                }).ConfigureAwait(false);
 
-                var context = await browser.NewContextAsync(new BrowserNewContextOptions
+                var page = await browser.NewPageAsync().ConfigureAwait(false);
+
+                await page.SetContentAsync(html, new PageSetContentOptions
                 {
-                    AcceptDownloads = true
-                });
+                    WaitUntil = WaitUntilState.NetworkIdle
+                }).ConfigureAwait(false);
 
-                var page = await context.NewPageAsync();
-
-                await page.GotoAsync("https://resumake.io/", new PageGotoOptions
+                // The @page rule in the HTML defines A4 + margins; honour it via PreferCSSPageSize.
+                await page.PdfAsync(new PagePdfOptions
                 {
-                    WaitUntil = WaitUntilState.NetworkIdle,
-                    Timeout = 60_000
-                });
+                    Path = outputPdfFilePath,
+                    PrintBackground = true,
+                    PreferCSSPageSize = true
+                }).ConfigureAwait(false);
 
-                var importButton = page.GetByText("Import JSON", new() { Exact = false });
-
-                if (await importButton.CountAsync() == 0)
-                {
-                    await page.GotoAsync("https://latexresu.me/", new() { WaitUntil = WaitUntilState.NetworkIdle, Timeout = 60_000 });
-                    importButton = page.GetByText("Import JSON", new() { Exact = false });
-                }
-
-                // Arm chooser BEFORE click
-                var fileChooser = await page.RunAndWaitForFileChooserAsync(async () =>
-                {
-                    await importButton.First.ClickAsync(new() { Timeout = 30_000 });
-                }, new() { Timeout = 30_000 });
-
-                await fileChooser.SetFilesAsync(tempJsonPath);
-
-                if (!page.Url.Contains("/generator", StringComparison.OrdinalIgnoreCase))
-                {
-                    await page.GotoAsync("https://resumake.io/generator", new PageGotoOptions
-                    {
-                        WaitUntil = WaitUntilState.NetworkIdle,
-                        Timeout = 60_000
-                    });
-                }
-
-                var makeButtons = page.Locator("button[type='submit'][form='resume-form']");
-                await makeButtons.First.WaitForAsync(new() { State = WaitForSelectorState.Attached, Timeout = 60_000 });
-
-                var clicked = false;
-                var count = await makeButtons.CountAsync();
-                for (int i = 0; i < count; i++)
-                {
-                    var btn = makeButtons.Nth(i);
-                    if (await btn.IsVisibleAsync() && await btn.IsEnabledAsync())
-                    {
-                        await btn.ClickAsync();
-                        clicked = true;
-                        break;
-                    }
-                }
-
-                if (!clicked)
-                    throw new InvalidOperationException("Could not find a visible/enabled 'Make' button to click.");
-
-                // Wait for the PDF link to exist + become a real blob href (means generation finished)
-                var pdfLink = page.Locator("a[download='resume.pdf']:has-text('PDF')");
-                await pdfLink.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 60_000 });
-
-                await WaitUntilPdfBlobReadyAsync(page, pdfLink, timeoutMs: 30_000, minBytes: 5_000);
-
-
-                var downloadTask = page.WaitForDownloadAsync(new() { Timeout = 60_000 });
-                await pdfLink.ClickAsync();
-                var download = await downloadTask;
-
-                // Save to file path (NOT folder)
-                await download.SaveAsAsync(outputPdfFilePath);
-
-                await context.CloseAsync();
-
-                context = await browser.NewContextAsync();
-                page = await context.NewPageAsync();
+                await browser.CloseAsync().ConfigureAwait(false);
 
                 var fi = new FileInfo(outputPdfFilePath);
                 if (!fi.Exists || fi.Length == 0)
-                    throw new IOException("Downloaded PDF is empty (0 bytes). Try increasing the post-generation wait or verify PDF link readiness.");
+                    throw new IOException("Generated PDF is empty (0 bytes).");
+
+                Log.Information("Resume PDF written ({Bytes} bytes) to {OutputPath}.", fi.Length, outputPdfFilePath);
             }
             catch (Exception ex)
             {
-                Log.Error(ex.Message, "Error in Playwright GeneratePdfFromJsonAsync method.");
+                Log.Error(ex, "Error in GeneratePdfFromJsonAsync method.");
                 throw;
             }
             finally
             {
-                try { if (File.Exists(tempJsonPath)) File.Delete(tempJsonPath); } catch { }
+                document.Dispose();
             }
         }
 
-        private static async Task WaitUntilPdfBlobReadyAsync(
-            IPage page,
-            ILocator pdfLink,
-            int timeoutMs = 50_000,
-            int minBytes = 5_000,          
-            int pollDelayMs = 500)
+        /// <summary>HTML-escape a value (ports the Python <c>e()</c> helper).</summary>
+        private static string E(string? s) => WebUtility.HtmlEncode(s ?? string.Empty);
+
+        /// <summary>Reads a string property off an object element, returning "" when absent/null.</summary>
+        private static string Str(JsonElement el, string property)
         {
-            var sw = Stopwatch.StartNew();
-
-            while (sw.ElapsedMilliseconds < timeoutMs)
+            if (el.ValueKind == JsonValueKind.Object
+                && el.TryGetProperty(property, out var value)
+                && value.ValueKind == JsonValueKind.String)
             {
-                // Re-read href each time (even if it usually stays the same)
-                var href = await pdfLink.GetAttributeAsync("href");
-                if (!string.IsNullOrWhiteSpace(href) && href.StartsWith("blob:", StringComparison.OrdinalIgnoreCase))
+                return value.GetString() ?? string.Empty;
+            }
+            return string.Empty;
+        }
+
+        /// <summary>Enumerates an array property, returning an empty sequence when absent.</summary>
+        private static IEnumerable<JsonElement> Arr(JsonElement el, string property)
+        {
+            if (el.ValueKind == JsonValueKind.Object
+                && el.TryGetProperty(property, out var value)
+                && value.ValueKind == JsonValueKind.Array)
+            {
+                return value.EnumerateArray();
+            }
+            return Enumerable.Empty<JsonElement>();
+        }
+
+        /// <summary>Reads an array of strings (ignoring null/non-string entries).</summary>
+        private static List<string> StrArr(JsonElement el, string property) =>
+            Arr(el, property)
+                .Where(x => x.ValueKind == JsonValueKind.String)
+                .Select(x => x.GetString() ?? string.Empty)
+                .ToList();
+
+        /// <summary>
+        /// Builds the polished resume HTML from the parsed JSON.
+        /// Direct port of <c>render_html</c> in generate_resume.py.
+        /// </summary>
+        private static string RenderHtml(JsonElement data)
+        {
+            var basics = data.ValueKind == JsonValueKind.Object && data.TryGetProperty("basics", out var b)
+                ? b
+                : default;
+
+            var name = Str(basics, "name");
+            var website = Str(basics, "website");
+            var contacts = new[] { Str(basics, "email"), Str(basics, "phone") }
+                .Where(c => !string.IsNullOrWhiteSpace(c))
+                .ToList();
+
+            var sb = new StringBuilder();
+
+            sb.Append($$"""
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<title>{{E(name)}} — Resume</title>
+<style>
+  @page { size: A4; margin: 11mm 13mm; }
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: #1f2933; font-size: 9.5pt; line-height: 1.3; margin: 0;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+  a { color: #1f6feb; text-decoration: none; }
+  header { border-bottom: 2.5px solid #1f6feb; padding-bottom: 6px; margin-bottom: 10px; }
+  h1 { font-size: 20pt; margin: 0; letter-spacing: .5px; color: #0b2545; }
+  .contact { margin-top: 4px; font-size: 9pt; color: #52606d; }
+  .contact span { white-space: nowrap; }
+  .sep { color: #cbd2d9; margin: 0 6px; }
+  section { margin-bottom: 9px; }
+  h2 {
+    font-size: 10pt; text-transform: uppercase; letter-spacing: 1.2px;
+    color: #1f6feb; margin: 0 0 5px; padding-bottom: 2px;
+    border-bottom: 1px solid #e4e7eb;
+  }
+  .entry { margin-bottom: 7px; page-break-inside: avoid; }
+  .entry-head { display: flex; justify-content: space-between; align-items: baseline; }
+  .role { font-weight: 600; color: #0b2545; font-size: 10pt; }
+  .company { font-weight: 600; color: #334e68; }
+  .meta { color: #627d98; font-size: 8.8pt; white-space: nowrap; padding-left: 10px; }
+  .subhead { display: flex; justify-content: space-between; font-size: 9pt; margin: 0 0 3px; }
+  ul { margin: 3px 0 0; padding-left: 16px; }
+  li { margin-bottom: 1.5px; }
+  .skills-grid { display: grid; grid-template-columns: 1fr; gap: 3px; }
+  .skill-row { display: flex; gap: 8px; align-items: baseline; }
+  .skill-name { font-weight: 600; color: #334e68; min-width: 165px; }
+  .tags span {
+    display: inline-block; background: #eef4ff; color: #1f4e8c;
+    border-radius: 4px; padding: 1px 6px; margin: 0 3px 3px 0; font-size: 8.6pt;
+  }
+  .edu-line, .award { margin-bottom: 5px; page-break-inside: avoid; }
+  .award-title { font-weight: 600; color: #0b2545; }
+  .award-summary { font-size: 8.8pt; color: #52606d; margin-top: 1px; }
+</style></head><body>
+""");
+
+            // Header
+            var contactHtml = new StringBuilder();
+            if (contacts.Count > 0)
+            {
+                contactHtml.Append($"<span>{E(contacts[0])}</span>");
+                foreach (var c in contacts.Skip(1))
+                    contactHtml.Append($"<span class=\"sep\">|</span><span>{E(c)}</span>");
+            }
+            if (!string.IsNullOrWhiteSpace(website))
+            {
+                var label = website.Replace("https://", "").Replace("http://", "");
+                contactHtml.Append($"<span class=\"sep\">|</span><span><a href=\"{E(website)}\">{E(label)}</a></span>");
+            }
+            sb.Append($"<header><h1>{E(name)}</h1><div class=\"contact\">{contactHtml}</div></header>");
+
+            // Work
+            sb.Append("<section><h2>Experience</h2>");
+            foreach (var job in Arr(data, "work"))
+            {
+                sb.Append("<div class=\"entry\">");
+                sb.Append($"<div class=\"entry-head\"><span class=\"role\">{E(Str(job, "position"))}</span>"
+                    + $"<span class=\"meta\">{E(Str(job, "startDate"))} – {E(Str(job, "endDate"))}</span></div>");
+                sb.Append($"<div class=\"subhead\"><span class=\"company\">{E(Str(job, "company"))}</span>"
+                    + $"<span class=\"meta\">{E(Str(job, "location"))}</span></div>");
+                var bullets = StrArr(job, "highlights").Where(h => !string.IsNullOrWhiteSpace(h)).ToList();
+                if (bullets.Count > 0)
+                    sb.Append("<ul>" + string.Concat(bullets.Select(h => $"<li>{E(h)}</li>")) + "</ul>");
+                sb.Append("</div>");
+            }
+            sb.Append("</section>");
+
+            // Skills
+            var skills = Arr(data, "skills")
+                .Where(s => StrArr(s, "keywords").Any(k => !string.IsNullOrWhiteSpace(k)))
+                .ToList();
+            if (skills.Count > 0)
+            {
+                sb.Append("<section><h2>Skills</h2><div class=\"skills-grid\">");
+                foreach (var s in skills)
                 {
-                    try
-                    {
-                        // Fetch the blob and return its size
-                        var size = await page.EvaluateAsync<int>(
-                            @"async (url) => {
-                        const res = await fetch(url);
-                        if (!res.ok) return -1;
-                        const b = await res.blob();
-                        return b.size || 0;
-                    }",
-                            href
-                        );
-
-                        if (size >= minBytes)
-                            return;
-                    }
-                    catch (Exception ex)
-                    {
-                        Log.Warning(ex, "Error while checking PDF blob size; will retry...");
-                    }
+                    var kws = StrArr(s, "keywords").Where(k => !string.IsNullOrWhiteSpace(k));
+                    var tags = string.Concat(kws.Select(k => $"<span>{E(k)}</span>"));
+                    sb.Append($"<div class=\"skill-row\"><span class=\"skill-name\">{E(Str(s, "name"))}</span>"
+                        + $"<span class=\"tags\">{tags}</span></div>");
                 }
-
-                await page.WaitForTimeoutAsync(pollDelayMs);
+                sb.Append("</div></section>");
             }
 
-            throw new TimeoutException("PDF blob never became ready (non-empty) within the timeout.");
+            // Education
+            var education = Arr(data, "education").ToList();
+            if (education.Count > 0)
+            {
+                sb.Append("<section><h2>Education</h2>");
+                foreach (var ed in education)
+                {
+                    sb.Append("<div class=\"edu-line\">"
+                        + $"<div class=\"entry-head\"><span class=\"role\">{E(Str(ed, "studyType"))}, {E(Str(ed, "area"))}</span>"
+                        + $"<span class=\"meta\">{E(Str(ed, "startDate"))} – {E(Str(ed, "endDate"))}</span></div>"
+                        + $"<div class=\"subhead\"><span class=\"company\">{E(Str(ed, "institution"))}</span>"
+                        + $"<span class=\"meta\">{E(Str(ed, "location"))}</span></div></div>");
+                }
+                sb.Append("</section>");
+            }
+
+            // Awards / Certifications
+            var awards = Arr(data, "awards").ToList();
+            if (awards.Count > 0)
+            {
+                var headings = data.ValueKind == JsonValueKind.Object && data.TryGetProperty("headings", out var h)
+                    ? h
+                    : default;
+                var awardHeading = Str(headings, "awards");
+                if (string.IsNullOrWhiteSpace(awardHeading))
+                    awardHeading = "Certifications";
+
+                sb.Append($"<section><h2>{E(awardHeading)}</h2>");
+                foreach (var a in awards)
+                {
+                    sb.Append("<div class=\"award\">"
+                        + $"<div class=\"entry-head\"><span class=\"award-title\">{E(Str(a, "title"))}</span>"
+                        + $"<span class=\"meta\">{E(Str(a, "awarder"))} · {E(Str(a, "date"))}</span></div>"
+                        + $"<div class=\"award-summary\">{E(Str(a, "summary"))}</div></div>");
+                }
+                sb.Append("</section>");
+            }
+
+            sb.Append("</body></html>");
+            return sb.ToString();
         }
     }
-
 }
