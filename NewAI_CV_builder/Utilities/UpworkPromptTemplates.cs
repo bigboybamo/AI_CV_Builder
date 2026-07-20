@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using NewAI_CV_builder.Utilities.ReversePrompts;
 
 namespace NewAI_CV_builder.Utilities
 {
@@ -9,11 +10,14 @@ namespace NewAI_CV_builder.Utilities
         private const string GenRulesToken = "<<GEN_RULES>>";
         private const string ProjectHighlightsToken = "<<PROJECT_HIGHLIGHTS>>";
         private const string JobSearchBuilderToken = "<<JOB_SEARCH_BUILDER>>";
+        private const string ReverseHookToken = "<<REVERSE_HOOK>>";
 
         public const string WebDeveloperCoverLetter =
             @"Create an upwork proposal for a Web Developer role using the following job description:
 
             {0}
+
+<<REVERSE_HOOK>>
 
             Be sure to mention my experience building and consuming APIs for enterprise and production systems, including:
 
@@ -67,6 +71,8 @@ namespace NewAI_CV_builder.Utilities
 
             {0}
 
+<<REVERSE_HOOK>>
+
             Be sure to mention my work on the Product Match application:
             https://dataladder.com/products/product-match/
 <<JOB_SEARCH_BUILDER>>
@@ -119,6 +125,8 @@ namespace NewAI_CV_builder.Utilities
 
             {0}
 
+<<REVERSE_HOOK>>
+
             Be sure to mention my documentation and how-to work for Shesha:
             https://docs.shesha.io/docs/get-started/Introduction/
             https://github.com/shesha-io/docs.shesha
@@ -170,6 +178,8 @@ namespace NewAI_CV_builder.Utilities
             @"Create a cover letter for an AI Engineer role using the following job description:
 
             {0}
+
+<<REVERSE_HOOK>>
 
             Lead with my ability to assess business problems and design practical AI solutions using LLMs, agents, RAG pipelines, and API integrations, not just implement what I'm told.
 
@@ -231,6 +241,9 @@ namespace NewAI_CV_builder.Utilities
             var rulesBlock = PromptRules.BuildRulesBlock(request.RuntimeRules);
             var result = formatted.Replace(GenRulesToken, rulesBlock);
 
+            if (result.Contains(ReverseHookToken))
+                result = result.Replace(ReverseHookToken, BuildReverseHookBlock());
+
             if (result.Contains(ProjectHighlightsToken))
                 result = result.Replace(ProjectHighlightsToken, BuildProjectHighlightsBlock(request.ProjectHighlights));
 
@@ -247,6 +260,33 @@ namespace NewAI_CV_builder.Utilities
             }
 
             return result;
+        }
+
+        private static string BuildReverseHookBlock()
+        {
+            var sb = new StringBuilder();
+
+            sb.Append("Open the proposal with a short, confident reverse-psychology hook (1-2 sentences) that leads straight into the pitch. ");
+            sb.Append("The goal is to sound selective and honest rather than boastful: position me as the right fit by being upfront about who I am NOT for, or by giving genuinely useful advice before pitching.\n\n");
+            sb.Append("Pick the ONE hook style below that best fits THIS specific job description and adapt its wording to the role, stack and problem the client describes. ");
+            sb.Append("Vary your choice based on the job; do not default to the same style every time, do not copy the example wording verbatim, and do not stack multiple hooks together:\n");
+
+            foreach (var hook in ReverseHookCatalog.Hooks)
+            {
+                sb.Append($"\n- {hook.Name}: open with something in the spirit of \"{hook.Hook}\" then {LowercaseFirst(hook.Content)}");
+            }
+
+            sb.Append("\n\nKeep the hook natural and specific to the job, with no cliches or buzzwords. It should read like honest expert advice, then transition smoothly into the rest of the proposal.");
+
+            return sb.ToString();
+        }
+
+        private static string LowercaseFirst(string value)
+        {
+            if (string.IsNullOrEmpty(value))
+                return value;
+
+            return char.ToLowerInvariant(value[0]) + value.Substring(1);
         }
 
         private static string BuildDesktopHighlightBlock(IEnumerable<ProjectHighlight>? highlights)
