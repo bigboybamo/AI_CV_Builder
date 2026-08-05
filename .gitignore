@@ -1,6 +1,12 @@
 # Ignore local environment files
 .env
 
+# Build output
+bin/
+obj/
+TestResults/
+*.user
+
 # Local task planning
 task.md
 .vs
