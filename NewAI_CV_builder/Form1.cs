@@ -235,6 +235,9 @@ namespace NewAI_CV_builder
 
             SendBtn.Enabled = false;
             TextOutput.Text = "Loading...";
+            SetBusy(openAICheckBox.Checked
+                ? "Tailoring resume with OpenAI…"
+                : "Tailoring resume with Claude…");
 
             string resumeJson = "";
             string prompt = "";
@@ -253,34 +256,73 @@ namespace NewAI_CV_builder
             if (openAICheckBox.Checked)
             {
                 CallOpenAiAsync(prompt, openAIApiKey).ContinueWith(task =>
-                {
-                    // Update the UI on the main thread
-                    this.Invoke((Action)(() =>
-                    {
-                        TextOutput.Text = task.Result;
-                        SendBtn.Enabled = true;
-                    }));
-                });
+                    HandleAiCompletion(task, TextOutput, SendBtn,
+                        "Resume tailored — generating PDF…", "Resume tailoring failed"));
             }
             else if (claudeCheckBox.Checked)
             {
                 CallClaudeAsync(prompt, claudeApiKey).ContinueWith(task =>
-                {
-                    // Update the UI on the main thread
-                    this.Invoke((Action)(() =>
-                    {
-                        TextOutput.Text = task.Result;
-                        SendBtn.Enabled = true;
-                    }));
-                });
+                    HandleAiCompletion(task, TextOutput, SendBtn,
+                        "Resume tailored — generating PDF…", "Resume tailoring failed"));
             }
             else
             {
                 MessageBox.Show("Please select an AI model (OpenAI or Claude).", "Input Required", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 SendBtn.Enabled = true;
                 TextOutput.Text = "";
+                SetIdle("Ready");
                 return;
-            }               
+            }
+        }
+
+        /// <summary>
+        /// Marshals an AI call result back onto the UI thread, updates the output box,
+        /// re-enables the triggering button and reflects success/failure in the status bar.
+        /// </summary>
+        private void HandleAiCompletion(Task<string> task, TextBox output, Button trigger,
+            string successStatus, string failureStatus, bool copyToClipboard = false)
+        {
+            this.Invoke((Action)(() =>
+            {
+                if (task.IsFaulted)
+                {
+                    output.Text = string.Empty;
+                    var message = task.Exception?.GetBaseException().Message;
+                    SetIdle($"{failureStatus}: {message}", isError: true);
+                }
+                else
+                {
+                    output.Text = task.Result;
+                    var failed = task.Result.StartsWith("Error:");
+                    if (!failed && copyToClipboard && !string.IsNullOrEmpty(task.Result))
+                    {
+                        try
+                        {
+                            Clipboard.SetText(task.Result);
+                        }
+                        catch (Exception ex)
+                        {
+                            Log.Warning(ex, "Failed to copy AI output to clipboard");
+                        }
+                    }
+                    SetIdle(failed ? $"{failureStatus} — see the output box for details." : successStatus, isError: failed);
+                }
+                trigger.Enabled = true;
+            }));
+        }
+
+        private void SetBusy(string message)
+        {
+            statusLabel.ForeColor = SystemColors.ControlText;
+            statusLabel.Text = message;
+            statusProgress.Visible = true;
+        }
+
+        private void SetIdle(string message, bool isError = false)
+        {
+            statusProgress.Visible = false;
+            statusLabel.ForeColor = isError ? Color.Firebrick : SystemColors.ControlText;
+            statusLabel.Text = message;
         }
 
         private void JsonCV_DoubleClick(object sender, EventArgs e)
@@ -327,6 +369,8 @@ namespace NewAI_CV_builder
 
             var downloadsFolder = Path.Combine(downloadfilePath, resumeFileName);
 
+            SetBusy("Generating PDF via resumake.io…");
+
             ResumakePlaywrightFlow.GeneratePdfFromJsonAsync(
                 JsonCV.Text,
                 downloadsFolder,
@@ -337,6 +381,7 @@ namespace NewAI_CV_builder
                 {
                     if (task.IsFaulted)
                     {
+                        SetIdle("PDF generation failed: " + task.Exception?.GetBaseException().Message, isError: true);
                         MessageBox.Show(this, "Failed to generate resume:\n" + task.Exception?.GetBaseException().Message,
                             "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
 
@@ -344,6 +389,7 @@ namespace NewAI_CV_builder
                     }
                     else
                     {
+                        SetIdle($"PDF saved to {downloadsFolder}");
                         MessageBox.Show(this, "Resume generated successfully",
                             "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
                         Log.Information("Resume generated successfully at {0}", downloadsFolder);
@@ -399,6 +445,9 @@ namespace NewAI_CV_builder
             //Call the OpenAI API asynchronously and update the UI when done
             Upwk_btn.Enabled = false;
             UptextOutput.Text = "Loading...";
+            SetBusy(openAICheckBox.Checked
+                ? "Generating proposal with OpenAI…"
+                : "Generating proposal with Claude…");
 
             // call claude api asynchronously and update the UI when done
             IEnumerable<string> runtimeRules = MoreRulesBox.CheckedItems.Cast<CheckBoxRuleItem>().Select(x => x.Value);
@@ -439,50 +488,23 @@ namespace NewAI_CV_builder
             if (openAICheckBox.Checked)
             {
                 CallOpenAiAsync(prompt, openAIApiKey).ContinueWith(task =>
-                {
-                    // Update the UI on the main thread
-                    this.Invoke((Action)(() =>
-                    {
-                        UptextOutput.Text = task.Result;
-                        try
-                        {
-                            if (!string.IsNullOrEmpty(UptextOutput.Text))
-                                Clipboard.SetText(UptextOutput.Text);
-                        }
-                        catch (Exception ex)
-                        {
-                            Log.Warning(ex, "Failed to copy UptextOutput to clipboard");
-                        }
-                        Upwk_btn.Enabled = true;
-                    }));
-                });
+                    HandleAiCompletion(task, UptextOutput, Upwk_btn,
+                        "Proposal generated and copied to your clipboard.", "Proposal generation failed",
+                        copyToClipboard: true));
             }
             else if (claudeCheckBox.Checked)
             {
                 CallClaudeAsync(prompt, claudeApiKey).ContinueWith(task =>
-                {
-                    // Update the UI on the main thread
-                    this.Invoke((Action)(() =>
-                    {
-                        UptextOutput.Text = task.Result;
-                        try
-                        {
-                            if (!string.IsNullOrEmpty(UptextOutput.Text))
-                                Clipboard.SetText(UptextOutput.Text);
-                        }
-                        catch (Exception ex)
-                        {
-                            Log.Warning(ex, "Failed to copy UptextOutput to clipboard");
-                        }
-                        Upwk_btn.Enabled = true;
-                    }));
-                });
+                    HandleAiCompletion(task, UptextOutput, Upwk_btn,
+                        "Proposal generated and copied to your clipboard.", "Proposal generation failed",
+                        copyToClipboard: true));
             }
             else
             {
                 MessageBox.Show("Please select an AI model (OpenAI or Claude).", "Input Required", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                SendBtn.Enabled = true;
-                TextOutput.Text = "";
+                Upwk_btn.Enabled = true;
+                UptextOutput.Text = "";
+                SetIdle("Ready");
                 return;
             }
         }
