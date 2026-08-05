@@ -1,3 +1,4 @@
 <Solution>
   <Project Path="NewAI_CV_builder/NewAI_CV_builder.csproj" />
+  <Project Path="NewAI_CV_builder.Tests/NewAI_CV_builder.Tests.csproj" />
 </Solution>

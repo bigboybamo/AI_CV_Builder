@@ -4,7 +4,6 @@ using Serilog;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
-using System.Text.RegularExpressions;
 
 namespace NewAI_CV_builder
 {
@@ -56,7 +55,7 @@ namespace NewAI_CV_builder
             if (_isUpdating) return;
 
             _isUpdating = true;
-            JsonCV.Text = StripMarkdownCodeFence(TextOutput.Text);
+            JsonCV.Text = MarkdownText.StripCodeFence(TextOutput.Text);
             _isUpdating = false;
 
             Generate_Rsme.PerformClick();
@@ -396,26 +395,6 @@ namespace NewAI_CV_builder
                     }
                 }));
             });
-        }
-
-        private static string StripMarkdownCodeFence(string input)
-        {
-            if (string.IsNullOrWhiteSpace(input))
-                return string.Empty;
-
-            var text = input.Trim();
-
-            // Fast path: if it doesn't even contain a fence, return as-is
-            if (!text.Contains("```"))
-                return text;
-
-            // Remove opening fence: ```json, ```JSON, ``` etc (at start)
-            text = Regex.Replace(text, @"^\s*```[a-zA-Z0-9_-]*\s*\r?\n", string.Empty);
-
-            // Remove closing fence (at end)
-            text = Regex.Replace(text, @"\r?\n\s*```\s*$", string.Empty);
-
-            return text.Trim();
         }
 
         private void TextOutput_TextChanged(object sender, EventArgs e)
