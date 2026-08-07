@@ -217,7 +217,7 @@ namespace NewAI_CV_builder
             return json;
         }
 
-        private void SendBtn_Click(object sender, EventArgs e)
+        private async void SendBtn_Click(object sender, EventArgs e)
         {
             //check if textbox is empty 
             if (string.IsNullOrWhiteSpace(TextInput.Text))
@@ -232,82 +232,75 @@ namespace NewAI_CV_builder
                 return;
             }
 
+            if (!openAICheckBox.Checked && !claudeCheckBox.Checked)
+            {
+                MessageBox.Show("Please select an AI model (OpenAI or Claude).", "Input Required", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            var useOpenAi = openAICheckBox.Checked;
+
             SendBtn.Enabled = false;
             TextOutput.Text = "Loading...";
-            SetBusy(openAICheckBox.Checked
+            SetBusy(useOpenAi
                 ? "Tailoring resume with OpenAI…"
                 : "Tailoring resume with Claude…");
 
-            string resumeJson = "";
-            string prompt = "";
+            try
+            {
+                var resumePath = jsonResumeCheck.Checked
+                    ? Environment.GetEnvironmentVariable("BASE_RESUME_FILE_NAME")
+                    : textBox1.Text;
 
-            if (jsonResumeCheck.Checked)
-            {
-                resumeJson = File.ReadAllText(Environment.GetEnvironmentVariable("BASE_RESUME_FILE_NAME"));
-                prompt = AtsResumePromptBuilder.Build(TextInput.Text, resumeJson);
-            }
-            else
-            {
-                resumeJson = File.ReadAllText(textBox1.Text);
-                prompt = AtsResumePromptBuilder.Build(TextInput.Text, resumeJson);
-            }
+                if (string.IsNullOrWhiteSpace(resumePath))
+                    throw new InvalidOperationException("BASE_RESUME_FILE_NAME is not set.");
 
-            if (openAICheckBox.Checked)
-            {
-                CallOpenAiAsync(prompt, openAIApiKey).ContinueWith(task =>
-                    HandleAiCompletion(task, TextOutput, SendBtn,
-                        "Resume tailored — generating PDF…", "Resume tailoring failed"));
+                var resumeJson = await File.ReadAllTextAsync(resumePath);
+                var prompt = AtsResumePromptBuilder.Build(TextInput.Text, resumeJson);
+
+                var result = useOpenAi
+                    ? await CallOpenAiAsync(prompt, openAIApiKey)
+                    : await CallClaudeAsync(prompt, claudeApiKey);
+
+                RenderAiResult(result, TextOutput,
+                    "Resume tailored — generating PDF…", "Resume tailoring failed");
             }
-            else if (claudeCheckBox.Checked)
+            catch (Exception ex)
             {
-                CallClaudeAsync(prompt, claudeApiKey).ContinueWith(task =>
-                    HandleAiCompletion(task, TextOutput, SendBtn,
-                        "Resume tailored — generating PDF…", "Resume tailoring failed"));
+                Log.Error(ex, "Resume tailoring failed");
+                TextOutput.Text = string.Empty;
+                SetIdle($"Resume tailoring failed: {ex.Message}", isError: true);
             }
-            else
+            finally
             {
-                MessageBox.Show("Please select an AI model (OpenAI or Claude).", "Input Required", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 SendBtn.Enabled = true;
-                TextOutput.Text = "";
-                SetIdle("Ready");
-                return;
             }
         }
 
         /// <summary>
-        /// Marshals an AI call result back onto the UI thread, updates the output box,
-        /// re-enables the triggering button and reflects success/failure in the status bar.
+        /// Renders a completed AI call into the output box and reflects success/failure in the
+        /// status bar. Called on the UI thread after awaiting the API helper, so no marshalling
+        /// is needed; re-enabling the triggering button is the caller's <c>finally</c> block.
         /// </summary>
-        private void HandleAiCompletion(Task<string> task, TextBox output, Button trigger,
+        private void RenderAiResult(string result, TextBox output,
             string successStatus, string failureStatus, bool copyToClipboard = false)
         {
-            this.Invoke((Action)(() =>
+            output.Text = result;
+            var failed = result.StartsWith("Error:");
+
+            if (!failed && copyToClipboard && !string.IsNullOrEmpty(result))
             {
-                if (task.IsFaulted)
+                try
                 {
-                    output.Text = string.Empty;
-                    var message = task.Exception?.GetBaseException().Message;
-                    SetIdle($"{failureStatus}: {message}", isError: true);
+                    Clipboard.SetText(result);
                 }
-                else
+                catch (Exception ex)
                 {
-                    output.Text = task.Result;
-                    var failed = task.Result.StartsWith("Error:");
-                    if (!failed && copyToClipboard && !string.IsNullOrEmpty(task.Result))
-                    {
-                        try
-                        {
-                            Clipboard.SetText(task.Result);
-                        }
-                        catch (Exception ex)
-                        {
-                            Log.Warning(ex, "Failed to copy AI output to clipboard");
-                        }
-                    }
-                    SetIdle(failed ? $"{failureStatus} — see the output box for details." : successStatus, isError: failed);
+                    Log.Warning(ex, "Failed to copy AI output to clipboard");
                 }
-                trigger.Enabled = true;
-            }));
+            }
+
+            SetIdle(failed ? $"{failureStatus} — see the output box for details." : successStatus, isError: failed);
         }
 
         private void SetBusy(string message)
@@ -408,7 +401,7 @@ namespace NewAI_CV_builder
 
         }
 
-        private void Upwk_btn_Click(object sender, EventArgs e)
+        private async void Upwk_btn_Click(object sender, EventArgs e)
         {
             if (string.IsNullOrEmpty(UptextInput.Text))
             {
@@ -421,14 +414,20 @@ namespace NewAI_CV_builder
                 MessageBox.Show("Please select a job title.");
                 return;
             }
-            //Call the OpenAI API asynchronously and update the UI when done
+            if (!openAICheckBox.Checked && !claudeCheckBox.Checked)
+            {
+                MessageBox.Show("Please select an AI model (OpenAI or Claude).", "Input Required", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            var useOpenAi = openAICheckBox.Checked;
+
             Upwk_btn.Enabled = false;
             UptextOutput.Text = "Loading...";
-            SetBusy(openAICheckBox.Checked
+            SetBusy(useOpenAi
                 ? "Generating proposal with OpenAI…"
                 : "Generating proposal with Claude…");
 
-            // call claude api asynchronously and update the UI when done
             IEnumerable<string> runtimeRules = MoreRulesBox.CheckedItems.Cast<CheckBoxRuleItem>().Select(x => x.Value);
 
             var selectedJob = Jobs_List.SelectedValue.ToString();
@@ -455,36 +454,34 @@ namespace NewAI_CV_builder
                 _ => null
             };
 
-            string prompt = AtsResumePromptBuilder.BuildUpwork(new UpworkProposalRequest
+            try
             {
-                JobDescription = UptextInput.Text,
-                JobType = selectedJob,
-                LoomUrl = loomUrl,
-                RuntimeRules = runtimeRules,
-                ProjectHighlights = projectHighlights
-            });
+                string prompt = AtsResumePromptBuilder.BuildUpwork(new UpworkProposalRequest
+                {
+                    JobDescription = UptextInput.Text,
+                    JobType = selectedJob,
+                    LoomUrl = loomUrl,
+                    RuntimeRules = runtimeRules,
+                    ProjectHighlights = projectHighlights
+                });
 
-            if (openAICheckBox.Checked)
-            {
-                CallOpenAiAsync(prompt, openAIApiKey).ContinueWith(task =>
-                    HandleAiCompletion(task, UptextOutput, Upwk_btn,
-                        "Proposal generated and copied to your clipboard.", "Proposal generation failed",
-                        copyToClipboard: true));
+                var result = useOpenAi
+                    ? await CallOpenAiAsync(prompt, openAIApiKey)
+                    : await CallClaudeAsync(prompt, claudeApiKey);
+
+                RenderAiResult(result, UptextOutput,
+                    "Proposal generated and copied to your clipboard.", "Proposal generation failed",
+                    copyToClipboard: true);
             }
-            else if (claudeCheckBox.Checked)
+            catch (Exception ex)
             {
-                CallClaudeAsync(prompt, claudeApiKey).ContinueWith(task =>
-                    HandleAiCompletion(task, UptextOutput, Upwk_btn,
-                        "Proposal generated and copied to your clipboard.", "Proposal generation failed",
-                        copyToClipboard: true));
+                Log.Error(ex, "Proposal generation failed");
+                UptextOutput.Text = string.Empty;
+                SetIdle($"Proposal generation failed: {ex.Message}", isError: true);
             }
-            else
+            finally
             {
-                MessageBox.Show("Please select an AI model (OpenAI or Claude).", "Input Required", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 Upwk_btn.Enabled = true;
-                UptextOutput.Text = "";
-                SetIdle("Ready");
-                return;
             }
         }
 

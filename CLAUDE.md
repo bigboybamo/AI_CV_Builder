@@ -93,7 +93,8 @@ The user selects either OpenAI or Claude via mutually exclusive checkboxes. API 
 ### Async / await
 - All I/O and API calls must be `async` and return `Task<T>`
 - Use `ConfigureAwait(false)` in `Services/` and `Utilities/` code
-- UI callbacks use `.ContinueWith(task => this.Invoke(...))` for WinForms thread marshalling
+- Button click handlers that call an API are `async void` (the standard exception to the async-void rule) and `await` the call directly. Wrap the body in `try`/`catch`/`finally`, re-enabling the triggering button in `finally` so it recovers from every failure path
+- Never inspect `task.IsFaulted` to decide whether a call succeeded — a task cancelled by an `HttpClient` timeout reports `IsCanceled`, not `IsFaulted`, and the check silently misses it. `await` surfaces both into `catch`
 - Never use `.Result` or `.Wait()`
 
 ### Logging
