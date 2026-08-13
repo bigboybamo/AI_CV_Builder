@@ -7,28 +7,44 @@ public class AtsResumePromptBuilderTests
     [Test]
     public void Build_WhenJobDescriptionIsEmpty_Throws()
     {
-        var exception = Assert.Throws<ArgumentException>(() =>
-            AtsResumePromptBuilder.Build("", "{\"basics\":{}}"));
+        //Arrange
+        const string jobDescription = "";
+        const string resumeJson = "{\"basics\":{}}";
 
+        //Act
+        var exception = Assert.Throws<ArgumentException>(() =>
+            AtsResumePromptBuilder.Build(jobDescription, resumeJson));
+
+        //Assert
         Assert.That(exception?.ParamName, Is.EqualTo("jobDescription"));
     }
 
     [Test]
     public void Build_WhenResumeJsonIsEmpty_Throws()
     {
-        var exception = Assert.Throws<ArgumentException>(() =>
-            AtsResumePromptBuilder.Build("Build a .NET API", ""));
+        //Arrange
+        const string jobDescription = "Build a .NET API";
+        const string resumeJson = "";
 
+        //Act
+        var exception = Assert.Throws<ArgumentException>(() =>
+            AtsResumePromptBuilder.Build(jobDescription, resumeJson));
+
+        //Assert
         Assert.That(exception?.ParamName, Is.EqualTo("resumeJson"));
     }
 
     [Test]
     public void Build_IncludesResumeJobDescriptionAndJsonOutputRules()
     {
-        var prompt = AtsResumePromptBuilder.Build(
-            "Need a .NET developer with Azure and PostgreSQL experience.",
-            "{\"skills\":[{\"name\":\"Backend\",\"keywords\":[\"[LANGUAGE_1]\"]}]}");
+        //Arrange
+        const string jobDescription = "Need a .NET developer with Azure and PostgreSQL experience.";
+        const string resumeJson = "{\"skills\":[{\"name\":\"Backend\",\"keywords\":[\"[LANGUAGE_1]\"]}]}";
 
+        //Act
+        var prompt = AtsResumePromptBuilder.Build(jobDescription, resumeJson);
+
+        //Assert
         Assert.Multiple(() =>
         {
             Assert.That(prompt, Does.Contain("Need a .NET developer with Azure and PostgreSQL experience."));
@@ -41,7 +57,8 @@ public class AtsResumePromptBuilderTests
     [Test]
     public void BuildUpwork_InsertsRuntimeRulesAndRemovesTemplateTokens()
     {
-        var prompt = AtsResumePromptBuilder.BuildUpwork(new UpworkProposalRequest
+        //Arrange
+        var request = new UpworkProposalRequest
         {
             JobDescription = "Need a WinForms developer to maintain a desktop reporting tool.",
             JobType = "Desktop Developer",
@@ -55,8 +72,12 @@ public class AtsResumePromptBuilderTests
                     PictureUrl = "https://example.com/job-search-builder.png"
                 }
             }
-        });
+        };
 
+        //Act
+        var prompt = AtsResumePromptBuilder.BuildUpwork(request);
+
+        //Assert
         Assert.Multiple(() =>
         {
             Assert.That(prompt, Does.Contain("Need a WinForms developer to maintain a desktop reporting tool."));

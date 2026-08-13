@@ -48,6 +48,7 @@ namespace NewAI_CV_builder
             actionsFlow = new FlowLayoutPanel();
             Generate_Rsme = new Button();
             SendBtn = new Button();
+            StopResumeBtn = new Button();
             lblAiOutput = new Label();
             lblJsonCv = new Label();
             TextOutput = new TextBox();
@@ -61,6 +62,7 @@ namespace NewAI_CV_builder
             lblJobTitle = new Label();
             Jobs_List = new ComboBox();
             Upwk_btn = new Button();
+            StopProposalBtn = new Button();
             rulesPanel = new Panel();
             lblRules = new Label();
             MoreRulesBox = new CheckedListBox();
@@ -323,6 +325,7 @@ namespace NewAI_CV_builder
             //
             actionsFlow.Controls.Add(Generate_Rsme);
             actionsFlow.Controls.Add(SendBtn);
+            actionsFlow.Controls.Add(StopResumeBtn);
             actionsFlow.Dock = DockStyle.Fill;
             actionsFlow.FlowDirection = FlowDirection.RightToLeft;
             actionsFlow.Location = new Point(335, 289);
@@ -339,9 +342,9 @@ namespace NewAI_CV_builder
             Generate_Rsme.Font = new Font("Segoe UI", 9.75F, FontStyle.Bold);
             Generate_Rsme.ForeColor = Color.White;
             Generate_Rsme.Location = new Point(173, 20);
-            Generate_Rsme.Margin = new Padding(6, 20, 3, 3);
+            Generate_Rsme.Margin = new Padding(4, 20, 2, 3);
             Generate_Rsme.Name = "Generate_Rsme";
-            Generate_Rsme.Size = new Size(135, 38);
+            Generate_Rsme.Size = new Size(105, 38);
             Generate_Rsme.TabIndex = 1;
             Generate_Rsme.Text = "Generate PDF";
             Generate_Rsme.UseVisualStyleBackColor = false;
@@ -355,13 +358,31 @@ namespace NewAI_CV_builder
             SendBtn.Font = new Font("Segoe UI", 9.75F, FontStyle.Bold);
             SendBtn.ForeColor = Color.White;
             SendBtn.Location = new Point(15, 20);
-            SendBtn.Margin = new Padding(6, 20, 3, 3);
+            SendBtn.Margin = new Padding(4, 20, 2, 3);
             SendBtn.Name = "SendBtn";
-            SendBtn.Size = new Size(135, 38);
+            SendBtn.Size = new Size(105, 38);
             SendBtn.TabIndex = 0;
             SendBtn.Text = "Tailor with AI";
             SendBtn.UseVisualStyleBackColor = false;
             SendBtn.Click += SendBtn_Click;
+            //
+            // StopResumeBtn
+            //
+            StopResumeBtn.BackColor = Color.FromArgb(220, 38, 38);
+            StopResumeBtn.Enabled = false;
+            StopResumeBtn.FlatAppearance.BorderSize = 0;
+            StopResumeBtn.FlatStyle = FlatStyle.Flat;
+            StopResumeBtn.Font = new Font("Segoe UI", 9.75F, FontStyle.Bold);
+            StopResumeBtn.ForeColor = Color.White;
+            StopResumeBtn.Location = new Point(3, 20);
+            StopResumeBtn.Margin = new Padding(4, 20, 2, 3);
+            StopResumeBtn.Name = "StopResumeBtn";
+            StopResumeBtn.Size = new Size(56, 38);
+            StopResumeBtn.TabIndex = 2;
+            StopResumeBtn.Text = "Stop";
+            StopResumeBtn.UseVisualStyleBackColor = false;
+            StopResumeBtn.Visible = false;
+            StopResumeBtn.Click += StopResumeBtn_Click;
             //
             // lblAiOutput
             //
@@ -496,6 +517,7 @@ namespace NewAI_CV_builder
             jobTitlePanel.Controls.Add(lblJobTitle);
             jobTitlePanel.Controls.Add(Jobs_List);
             jobTitlePanel.Controls.Add(Upwk_btn);
+            jobTitlePanel.Controls.Add(StopProposalBtn);
             jobTitlePanel.Dock = DockStyle.Fill;
             jobTitlePanel.Location = new Point(3, 3);
             jobTitlePanel.Name = "jobTitlePanel";
@@ -536,6 +558,23 @@ namespace NewAI_CV_builder
             Upwk_btn.Text = "Generate Proposal";
             Upwk_btn.UseVisualStyleBackColor = false;
             Upwk_btn.Click += Upwk_btn_Click;
+            //
+            // StopProposalBtn
+            //
+            StopProposalBtn.BackColor = Color.FromArgb(220, 38, 38);
+            StopProposalBtn.Enabled = false;
+            StopProposalBtn.FlatAppearance.BorderSize = 0;
+            StopProposalBtn.FlatStyle = FlatStyle.Flat;
+            StopProposalBtn.Font = new Font("Segoe UI", 9.75F, FontStyle.Bold);
+            StopProposalBtn.ForeColor = Color.White;
+            StopProposalBtn.Location = new Point(186, 62);
+            StopProposalBtn.Name = "StopProposalBtn";
+            StopProposalBtn.Size = new Size(90, 38);
+            StopProposalBtn.TabIndex = 3;
+            StopProposalBtn.Text = "Stop";
+            StopProposalBtn.UseVisualStyleBackColor = false;
+            StopProposalBtn.Visible = false;
+            StopProposalBtn.Click += StopProposalBtn_Click;
             //
             // rulesPanel
             //
@@ -682,6 +721,7 @@ namespace NewAI_CV_builder
         private FlowLayoutPanel actionsFlow;
         private Button SendBtn;
         private Button Generate_Rsme;
+        private Button StopResumeBtn;
         private Label lblAiOutput;
         private Label lblJsonCv;
         private TextBox TextOutput;
@@ -695,6 +735,7 @@ namespace NewAI_CV_builder
         private Label lblJobTitle;
         private ComboBox Jobs_List;
         private Button Upwk_btn;
+        private Button StopProposalBtn;
         private Panel rulesPanel;
         private Label lblRules;
         private CheckedListBox MoreRulesBox;
