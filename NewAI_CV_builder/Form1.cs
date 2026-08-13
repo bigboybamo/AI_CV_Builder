@@ -24,6 +24,11 @@ namespace NewAI_CV_builder
         private bool _isUpdating;
         private readonly List<string> _jobTitles;
 
+        // Kept separate so stopping the resume flow never touches an in-flight
+        // Upwork proposal, and vice versa. Both are only ever touched on the UI thread.
+        private CancellationTokenSource? _resumeCancellationTokenSource;
+        private CancellationTokenSource? _proposalCancellationTokenSource;
+
         public Form1()
         {
             InitializeComponent();
@@ -61,7 +66,7 @@ namespace NewAI_CV_builder
             Generate_Rsme.PerformClick();
         }
 
-        public static async Task<string> CallOpenAiAsync(string prompt, string apiKey)
+        public static async Task<string> CallOpenAiAsync(string prompt, string apiKey, CancellationToken cancellationToken = default)
         {
             Log.Information("CallOpenAiAsync started. PromptLength={PromptLength}", prompt?.Length ?? 0);
 
@@ -86,8 +91,8 @@ namespace NewAI_CV_builder
 
             try
             {
-                using var resp = await _httpOpenAI.SendAsync(msg).ConfigureAwait(false);
-                var json = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
+                using var resp = await _httpOpenAI.SendAsync(msg, cancellationToken).ConfigureAwait(false);
+                var json = await resp.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
 
                 Log.Debug("HTTP response received. StatusCode={StatusCode}, ResponseSize={ResponseSizeBytes}", resp.StatusCode, json?.Length ?? 0);
 
@@ -123,6 +128,13 @@ namespace NewAI_CV_builder
                 Log.Warning("Response did not contain expected 'output[0].content[0].text'; returning raw JSON.");
                 return json;
             }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                // User pressed Stop — expected, not a failure. An HttpClient timeout also
+                // surfaces as OperationCanceledException, so the token guard keeps the two apart.
+                Log.Information("CallOpenAiAsync cancelled by the user.");
+                throw;
+            }
             catch (Exception ex)
             {
                 Log.Error(ex, "Exception occurred while calling OpenAI API");
@@ -130,7 +142,7 @@ namespace NewAI_CV_builder
             }
         }
 
-        public static async Task<string> CallClaudeAsync(string prompt, string apiKey)
+        public static async Task<string> CallClaudeAsync(string prompt, string apiKey, CancellationToken cancellationToken = default)
         {
             Log.Information("CallClaudeAsync started. PromptLength={PromptLength}", prompt?.Length ?? 0);
             var preview = (prompt ?? string.Empty).Replace("\r", " ").Replace("\n", " ");
@@ -163,8 +175,8 @@ namespace NewAI_CV_builder
 
             try
             {
-                using var resp = await _httpClaude.SendAsync(msg).ConfigureAwait(false);
-                var json = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
+                using var resp = await _httpClaude.SendAsync(msg, cancellationToken).ConfigureAwait(false);
+                var json = await resp.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
                 Log.Debug("HTTP response received. StatusCode={StatusCode}, ResponseSize={ResponseSizeBytes}", resp.StatusCode, json?.Length ?? 0);
 
                 if (!resp.IsSuccessStatusCode)
@@ -193,6 +205,13 @@ namespace NewAI_CV_builder
 
                 Log.Warning("Response did not contain expected 'content[0].text'; returning raw JSON.");
                 return json;
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                // User pressed Stop — expected, not a failure. An HttpClient timeout also
+                // surfaces as OperationCanceledException, so the token guard keeps the two apart.
+                Log.Information("CallClaudeAsync cancelled by the user.");
+                throw;
             }
             catch (Exception ex)
             {
@@ -240,7 +259,11 @@ namespace NewAI_CV_builder
 
             var useOpenAi = openAICheckBox.Checked;
 
-            SendBtn.Enabled = false;
+            _resumeCancellationTokenSource?.Dispose();
+            _resumeCancellationTokenSource = new CancellationTokenSource();
+            var cancellationToken = _resumeCancellationTokenSource.Token;
+
+            BeginResumeWork();
             TextOutput.Text = "Loading...";
             SetBusy(useOpenAi
                 ? "Tailoring resume with OpenAI…"
@@ -255,15 +278,25 @@ namespace NewAI_CV_builder
                 if (string.IsNullOrWhiteSpace(resumePath))
                     throw new InvalidOperationException("BASE_RESUME_FILE_NAME is not set.");
 
-                var resumeJson = await File.ReadAllTextAsync(resumePath);
+                var resumeJson = await File.ReadAllTextAsync(resumePath, cancellationToken);
+
+                cancellationToken.ThrowIfCancellationRequested();
                 var prompt = AtsResumePromptBuilder.Build(TextInput.Text, resumeJson);
 
+                cancellationToken.ThrowIfCancellationRequested();
                 var result = useOpenAi
-                    ? await CallOpenAiAsync(prompt, openAIApiKey)
-                    : await CallClaudeAsync(prompt, claudeApiKey);
+                    ? await CallOpenAiAsync(prompt, openAIApiKey, cancellationToken)
+                    : await CallClaudeAsync(prompt, claudeApiKey, cancellationToken);
 
+                cancellationToken.ThrowIfCancellationRequested();
                 RenderAiResult(result, TextOutput,
                     "Resume tailored — generating PDF…", "Resume tailoring failed");
+            }
+            catch (OperationCanceledException)
+            {
+                Log.Information("Resume tailoring stopped by the user.");
+                DiscardResumeOutput();
+                SetIdle("Resume generation stopped.");
             }
             catch (Exception ex)
             {
@@ -273,8 +306,46 @@ namespace NewAI_CV_builder
             }
             finally
             {
-                SendBtn.Enabled = true;
+                EndResumeWork();
             }
+        }
+
+        /// <summary>
+        /// Puts the resume half of the form into its running state: both start buttons off,
+        /// the stop button showing. Paired with <see cref="EndResumeWork"/> in a finally block.
+        /// </summary>
+        private void BeginResumeWork()
+        {
+            SendBtn.Enabled = false;
+            Generate_Rsme.Enabled = false;
+            StopResumeBtn.Visible = true;
+            StopResumeBtn.Enabled = true;
+        }
+
+        /// <summary>
+        /// Restores the resume controls and releases the resume cancellation source, whichever
+        /// way the flow ended.
+        /// </summary>
+        private void EndResumeWork()
+        {
+            _resumeCancellationTokenSource?.Dispose();
+            _resumeCancellationTokenSource = null;
+
+            StopResumeBtn.Enabled = false;
+            StopResumeBtn.Visible = false;
+            SendBtn.Enabled = true;
+            Generate_Rsme.Enabled = true;
+        }
+
+        /// <summary>
+        /// Clears the half-finished tailoring output and cancels the debounce tick that the
+        /// clearing itself queued, so a stop never rolls on into PDF generation.
+        /// </summary>
+        private void DiscardResumeOutput()
+        {
+            TextOutput.Text = string.Empty;
+            JsonCV.Text = string.Empty;
+            _debounceTimer.Stop();
         }
 
         /// <summary>
@@ -345,7 +416,7 @@ namespace NewAI_CV_builder
             }
         }
 
-        private void Generate_Rsme_Click(object sender, EventArgs e)
+        private async void Generate_Rsme_Click(object sender, EventArgs e)
         {
             // check if JsonCV is empty
             if (string.IsNullOrWhiteSpace(JsonCV.Text) && !_isUpdating)
@@ -361,33 +432,59 @@ namespace NewAI_CV_builder
 
             var downloadsFolder = Path.Combine(downloadfilePath, resumeFileName);
 
+            _resumeCancellationTokenSource?.Dispose();
+            _resumeCancellationTokenSource = new CancellationTokenSource();
+            var cancellationToken = _resumeCancellationTokenSource.Token;
+
+            BeginResumeWork();
             SetBusy("Generating PDF via resumake.io…");
 
-            ResumakePlaywrightFlow.GeneratePdfFromJsonAsync(
-                JsonCV.Text,
-                downloadsFolder,
-                headless: true).ContinueWith(task =>
+            try
             {
-                // Update the UI on the main thread
-                this.Invoke((Action)(() =>
-                {
-                    if (task.IsFaulted)
-                    {
-                        SetIdle("PDF generation failed: " + task.Exception?.GetBaseException().Message, isError: true);
-                        MessageBox.Show(this, "Failed to generate resume:\n" + task.Exception?.GetBaseException().Message,
-                            "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                await ResumakePlaywrightFlow.GeneratePdfFromJsonAsync(
+                    JsonCV.Text,
+                    downloadsFolder,
+                    headless: true,
+                    cancellationToken);
 
-                        Log.Error("Resume generation failed: {0}", task.Exception?.GetBaseException().Message);
-                    }
-                    else
-                    {
-                        SetIdle($"PDF saved to {downloadsFolder}");
-                        MessageBox.Show(this, "Resume generated successfully",
-                            "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                        Log.Information("Resume generated successfully at {0}", downloadsFolder);
-                    }
-                }));
-            });
+                SetIdle($"PDF saved to {downloadsFolder}");
+                MessageBox.Show(this, "Resume generated successfully",
+                    "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                Log.Information("Resume generated successfully at {OutputPath}", downloadsFolder);
+            }
+            catch (OperationCanceledException)
+            {
+                Log.Information("PDF generation stopped by the user.");
+                SetIdle("PDF generation stopped.");
+            }
+            catch (Exception ex)
+            {
+                SetIdle("PDF generation failed: " + ex.Message, isError: true);
+                MessageBox.Show(this, "Failed to generate resume:\n" + ex.Message,
+                    "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+
+                Log.Error(ex, "Resume generation failed");
+            }
+            finally
+            {
+                EndResumeWork();
+            }
+        }
+
+        private void StopResumeBtn_Click(object sender, EventArgs e)
+        {
+            // Disable first: the flow's finally block hides the button, but that only runs once
+            // the cancellation has actually unwound, so this blocks repeat clicks meanwhile.
+            StopResumeBtn.Enabled = false;
+            Log.Information("Stop requested for the resume flow.");
+            _resumeCancellationTokenSource?.Cancel();
+        }
+
+        private void StopProposalBtn_Click(object sender, EventArgs e)
+        {
+            StopProposalBtn.Enabled = false;
+            Log.Information("Stop requested for the Upwork proposal flow.");
+            _proposalCancellationTokenSource?.Cancel();
         }
 
         private void TextOutput_TextChanged(object sender, EventArgs e)
@@ -422,7 +519,13 @@ namespace NewAI_CV_builder
 
             var useOpenAi = openAICheckBox.Checked;
 
+            _proposalCancellationTokenSource?.Dispose();
+            _proposalCancellationTokenSource = new CancellationTokenSource();
+            var cancellationToken = _proposalCancellationTokenSource.Token;
+
             Upwk_btn.Enabled = false;
+            StopProposalBtn.Visible = true;
+            StopProposalBtn.Enabled = true;
             UptextOutput.Text = "Loading...";
             SetBusy(useOpenAi
                 ? "Generating proposal with OpenAI…"
@@ -465,13 +568,25 @@ namespace NewAI_CV_builder
                     ProjectHighlights = projectHighlights
                 });
 
+                cancellationToken.ThrowIfCancellationRequested();
                 var result = useOpenAi
-                    ? await CallOpenAiAsync(prompt, openAIApiKey)
-                    : await CallClaudeAsync(prompt, claudeApiKey);
+                    ? await CallOpenAiAsync(prompt, openAIApiKey, cancellationToken)
+                    : await CallClaudeAsync(prompt, claudeApiKey, cancellationToken);
 
+                cancellationToken.ThrowIfCancellationRequested();
                 RenderAiResult(result, UptextOutput,
                     "Proposal generated and copied to your clipboard.", "Proposal generation failed",
                     copyToClipboard: true);
+            }
+            catch (OperationCanceledException)
+            {
+                Log.Information("Proposal generation stopped by the user.");
+
+                // Clear only the placeholder — any proposal already in the box is the user's.
+                if (UptextOutput.Text == "Loading...")
+                    UptextOutput.Text = string.Empty;
+
+                SetIdle("Proposal generation stopped.");
             }
             catch (Exception ex)
             {
@@ -481,6 +596,11 @@ namespace NewAI_CV_builder
             }
             finally
             {
+                _proposalCancellationTokenSource?.Dispose();
+                _proposalCancellationTokenSource = null;
+
+                StopProposalBtn.Enabled = false;
+                StopProposalBtn.Visible = false;
                 Upwk_btn.Enabled = true;
             }
         }

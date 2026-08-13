@@ -13,11 +13,14 @@ namespace NewAI_CV_builder.Services
         /// document (ported from generate_resume.py) and prints it to a PDF at
         /// <paramref name="outputPdfFilePath"/> using headless Chromium via Playwright.
         /// All highlights from every job are always rendered — nothing is dropped.
+        /// Cancelling via <paramref name="cancellationToken"/> throws
+        /// <see cref="OperationCanceledException"/> and removes any half-written PDF.
         /// </summary>
         public static async Task GeneratePdfFromJsonAsync(
             string resumeJson,
             string outputPdfFilePath,
-            bool headless = true)
+            bool headless = true,
+            CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(resumeJson))
                 throw new ArgumentException("Resume JSON is empty.", nameof(resumeJson));
@@ -31,6 +34,8 @@ namespace NewAI_CV_builder.Services
                 throw new ArgumentException("Output path must include a directory and filename (e.g. C:\\Users\\...\\Downloads\\resume.pdf)");
 
             Directory.CreateDirectory(outputDir);
+
+            cancellationToken.ThrowIfCancellationRequested();
 
             JsonDocument document;
             try
@@ -48,9 +53,14 @@ namespace NewAI_CV_builder.Services
                 var html = RenderHtml(document.RootElement);
 
                 Log.Information("Rendering resume PDF via headless Chromium to {OutputPath}...", outputPdfFilePath);
+
+                // The Playwright APIs below take no CancellationToken, so cancellation is
+                // honoured at the boundary of each expensive step instead.
+                cancellationToken.ThrowIfCancellationRequested();
                 using var playwright = await Playwright.CreateAsync().ConfigureAwait(false);
 
                 // PDF generation requires headless Chromium.
+                cancellationToken.ThrowIfCancellationRequested();
                 await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
                 {
                     Headless = headless
@@ -58,12 +68,14 @@ namespace NewAI_CV_builder.Services
 
                 var page = await browser.NewPageAsync().ConfigureAwait(false);
 
+                cancellationToken.ThrowIfCancellationRequested();
                 await page.SetContentAsync(html, new PageSetContentOptions
                 {
                     WaitUntil = WaitUntilState.NetworkIdle
                 }).ConfigureAwait(false);
 
                 // The @page rule in the HTML defines A4 + margins; honour it via PreferCSSPageSize.
+                cancellationToken.ThrowIfCancellationRequested();
                 await page.PdfAsync(new PagePdfOptions
                 {
                     Path = outputPdfFilePath,
@@ -73,11 +85,19 @@ namespace NewAI_CV_builder.Services
 
                 await browser.CloseAsync().ConfigureAwait(false);
 
+                cancellationToken.ThrowIfCancellationRequested();
+
                 var fi = new FileInfo(outputPdfFilePath);
                 if (!fi.Exists || fi.Length == 0)
                     throw new IOException("Generated PDF is empty (0 bytes).");
 
                 Log.Information("Resume PDF written ({Bytes} bytes) to {OutputPath}.", fi.Length, outputPdfFilePath);
+            }
+            catch (OperationCanceledException)
+            {
+                Log.Information("PDF generation cancelled before completion for {OutputPath}.", outputPdfFilePath);
+                DeleteIncompletePdf(outputPdfFilePath);
+                throw;
             }
             catch (Exception ex)
             {
@@ -87,6 +107,62 @@ namespace NewAI_CV_builder.Services
             finally
             {
                 document.Dispose();
+            }
+        }
+
+        /// <summary>
+        /// Removes an output PDF that was cut short by cancellation. A file that already
+        /// carries a complete PDF trailer is left alone — that is a finished document from
+        /// this or an earlier run, not debris.
+        /// </summary>
+        private static void DeleteIncompletePdf(string outputPdfFilePath)
+        {
+            try
+            {
+                var file = new FileInfo(outputPdfFilePath);
+                if (!file.Exists)
+                    return;
+
+                if (file.Length > 0 && IsCompletePdf(outputPdfFilePath))
+                {
+                    Log.Debug("Leaving complete PDF at {OutputPath} in place after cancellation.", outputPdfFilePath);
+                    return;
+                }
+
+                file.Delete();
+                Log.Information("Deleted incomplete PDF ({Bytes} bytes) at {OutputPath} after cancellation.", file.Length, outputPdfFilePath);
+            }
+            catch (Exception ex)
+            {
+                Log.Warning(ex, "Failed to delete incomplete PDF at {OutputPath} after cancellation.", outputPdfFilePath);
+            }
+        }
+
+        /// <summary>Checks for the <c>%%EOF</c> trailer that terminates a fully written PDF.</summary>
+        private static bool IsCompletePdf(string path)
+        {
+            const string trailer = "%%EOF";
+
+            try
+            {
+                using var stream = File.OpenRead(path);
+                if (stream.Length < trailer.Length)
+                    return false;
+
+                var tailLength = (int)Math.Min(stream.Length, 1024);
+                stream.Seek(-tailLength, SeekOrigin.End);
+
+                var buffer = new byte[tailLength];
+                stream.ReadExactly(buffer);
+
+                return Encoding.ASCII.GetString(buffer)
+                    .TrimEnd('\0', '\r', '\n', ' ')
+                    .EndsWith(trailer, StringComparison.Ordinal);
+            }
+            catch (IOException ex)
+            {
+                Log.Warning(ex, "Could not read {Path} to check for a PDF trailer; treating it as incomplete.", path);
+                return false;
             }
         }
 
