@@ -9,8 +9,6 @@ namespace NewAI_CV_builder
 {
     public partial class Form1 : Form
     {
-        private readonly string? openAIApiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY");
-        private readonly string? claudeApiKey = Environment.GetEnvironmentVariable("CLAUDIUS_API_KEY");
         private readonly string? developerLoomUrl = Environment.GetEnvironmentVariable("DEVELOPER_LOOM_URL");
         private readonly string? technicalWriterLoomUrl = Environment.GetEnvironmentVariable("TECHNICAL_WRITER_LOOM_URL");
         private readonly string? aiDeveloperLoomUrl = Environment.GetEnvironmentVariable("AI_DEVELOPER_LOOM_URL");
@@ -258,6 +256,18 @@ namespace NewAI_CV_builder
             }
 
             var useOpenAi = openAICheckBox.Checked;
+            var apiKeySetting = ApiKeySettingFor(useOpenAi);
+
+            // The base resume path only matters when the user asked for the base resume;
+            // otherwise the path comes from textBox1, which is already validated above.
+            var required = jsonResumeCheck.Checked
+                ? new[] { apiKeySetting, "BASE_RESUME_FILE_NAME" }
+                : new[] { apiKeySetting };
+
+            if (!EnsureSettings(required))
+                return;
+
+            var apiKey = RequiredSettings.Get(apiKeySetting);
 
             _resumeCancellationTokenSource?.Dispose();
             _resumeCancellationTokenSource = new CancellationTokenSource();
@@ -272,11 +282,8 @@ namespace NewAI_CV_builder
             try
             {
                 var resumePath = jsonResumeCheck.Checked
-                    ? Environment.GetEnvironmentVariable("BASE_RESUME_FILE_NAME")
+                    ? RequiredSettings.Get("BASE_RESUME_FILE_NAME")
                     : textBox1.Text;
-
-                if (string.IsNullOrWhiteSpace(resumePath))
-                    throw new InvalidOperationException("BASE_RESUME_FILE_NAME is not set.");
 
                 var resumeJson = await File.ReadAllTextAsync(resumePath, cancellationToken);
 
@@ -285,8 +292,8 @@ namespace NewAI_CV_builder
 
                 cancellationToken.ThrowIfCancellationRequested();
                 var result = useOpenAi
-                    ? await CallOpenAiAsync(prompt, openAIApiKey, cancellationToken)
-                    : await CallClaudeAsync(prompt, claudeApiKey, cancellationToken);
+                    ? await CallOpenAiAsync(prompt, apiKey, cancellationToken)
+                    : await CallClaudeAsync(prompt, apiKey, cancellationToken);
 
                 cancellationToken.ThrowIfCancellationRequested();
                 RenderAiResult(result, TextOutput,
@@ -374,6 +381,31 @@ namespace NewAI_CV_builder
             SetIdle(failed ? $"{failureStatus} — see the output box for details." : successStatus, isError: failed);
         }
 
+        /// <summary>
+        /// Guards a workflow behind the environment variables it needs, naming every missing one.
+        /// Returns false when the caller should stop before doing any work; once it returns true,
+        /// <see cref="RequiredSettings.Get"/> is safe for each of those names.
+        /// </summary>
+        private bool EnsureSettings(params string[] names)
+        {
+            var missing = RequiredSettings.FindMissing(names);
+
+            if (missing.Count == 0)
+                return true;
+
+            Log.Warning("Action blocked — missing configuration: {MissingSettings}", string.Join(", ", missing));
+            MessageBox.Show(this, RequiredSettings.DescribeMissing(missing),
+                "Configuration Required", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+
+            return false;
+        }
+
+        /// <summary>
+        /// Names the API key setting for the model the user picked.
+        /// </summary>
+        private static string ApiKeySettingFor(bool useOpenAi) =>
+            useOpenAi ? "OPENAI_API_KEY" : "CLAUDIUS_API_KEY";
+
         private void SetBusy(string message)
         {
             statusLabel.ForeColor = SystemColors.ControlText;
@@ -427,10 +459,14 @@ namespace NewAI_CV_builder
 
             if (JsonCV.Text == "Loading...") return;
 
-            var downloadfilePath = Environment.GetEnvironmentVariable("RESUME_DOWNLOAD_PATH");
-            var resumeFileName = Environment.GetEnvironmentVariable("RESUME_FILE_NAME");
+            // Checked before Path.Combine: a blank value there throws ArgumentNullException
+            // outside the try below, which would take the whole app down from an async void handler.
+            if (!EnsureSettings("RESUME_DOWNLOAD_PATH", "RESUME_FILE_NAME"))
+                return;
 
-            var downloadsFolder = Path.Combine(downloadfilePath, resumeFileName);
+            var downloadsFolder = Path.Combine(
+                RequiredSettings.Get("RESUME_DOWNLOAD_PATH"),
+                RequiredSettings.Get("RESUME_FILE_NAME"));
 
             _resumeCancellationTokenSource?.Dispose();
             _resumeCancellationTokenSource = new CancellationTokenSource();
@@ -518,6 +554,12 @@ namespace NewAI_CV_builder
             }
 
             var useOpenAi = openAICheckBox.Checked;
+            var apiKeySetting = ApiKeySettingFor(useOpenAi);
+
+            if (!EnsureSettings(apiKeySetting))
+                return;
+
+            var apiKey = RequiredSettings.Get(apiKeySetting);
 
             _proposalCancellationTokenSource?.Dispose();
             _proposalCancellationTokenSource = new CancellationTokenSource();
@@ -570,8 +612,8 @@ namespace NewAI_CV_builder
 
                 cancellationToken.ThrowIfCancellationRequested();
                 var result = useOpenAi
-                    ? await CallOpenAiAsync(prompt, openAIApiKey, cancellationToken)
-                    : await CallClaudeAsync(prompt, claudeApiKey, cancellationToken);
+                    ? await CallOpenAiAsync(prompt, apiKey, cancellationToken)
+                    : await CallClaudeAsync(prompt, apiKey, cancellationToken);
 
                 cancellationToken.ThrowIfCancellationRequested();
                 RenderAiResult(result, UptextOutput,
