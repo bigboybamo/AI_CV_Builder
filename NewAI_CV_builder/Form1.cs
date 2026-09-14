@@ -217,23 +217,6 @@ namespace NewAI_CV_builder
                 throw;
             }
         }
-
-
-        public static async Task<string> ListModelsAsync(string apiKey)
-        {
-            // GET /v1/models :contentReference[oaicite:5]{index=5}
-            using var msg = new HttpRequestMessage(HttpMethod.Get, "v1/models");
-            msg.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
-
-            using var resp = await _httpClaude.SendAsync(msg).ConfigureAwait(false);
-            var json = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
-
-            if (!resp.IsSuccessStatusCode)
-                return $"Error: {(int)resp.StatusCode} {resp.ReasonPhrase}\n{json}";
-
-            return json;
-        }
-
         private async void SendBtn_Click(object sender, EventArgs e)
         {
             //check if textbox is empty 
