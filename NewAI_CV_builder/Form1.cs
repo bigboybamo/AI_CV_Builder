@@ -12,6 +12,7 @@ namespace NewAI_CV_builder
         private readonly string? developerLoomUrl = Environment.GetEnvironmentVariable("DEVELOPER_LOOM_URL");
         private readonly string? technicalWriterLoomUrl = Environment.GetEnvironmentVariable("TECHNICAL_WRITER_LOOM_URL");
         private readonly string? aiDeveloperLoomUrl = Environment.GetEnvironmentVariable("AI_DEVELOPER_LOOM_URL");
+        private readonly string? genericLoomUrl = Environment.GetEnvironmentVariable("GENERIC_LOOM_URL");
         private readonly string? modakWebPic = Environment.GetEnvironmentVariable("MODAK_WEB_PIC");
         private readonly string? modakWebDesc = Environment.GetEnvironmentVariable("MODAK_WEB_DESC");
         private readonly string? helpMeRadBridgePic = Environment.GetEnvironmentVariable("HELP_ME_RAD_BRIDGE_PIC");
@@ -30,7 +31,7 @@ namespace NewAI_CV_builder
         public Form1()
         {
             InitializeComponent();
-            _jobTitles = new List<string> { "-- Select a job title --", "Web Developer", "Desktop Developer", "Technical Writer", "AI Developer" };
+            _jobTitles = new List<string> { "-- Select a job title --", "Web Developer", "Desktop Developer", "Technical Writer", "AI Developer", "Other" };
 
             MoreRulesBox.DisplayMember = nameof(CheckBoxRuleItem.Text);
             MoreRulesBox.ValueMember = nameof(CheckBoxRuleItem.Value);
@@ -564,6 +565,7 @@ namespace NewAI_CV_builder
             {
                 "Technical Writer" => technicalWriterLoomUrl,
                 "AI Developer" => aiDeveloperLoomUrl,
+                "Other" => genericLoomUrl,
                 _ => developerLoomUrl
             };
 
