@@ -80,6 +80,9 @@ CANDIDATE JSON RESUME:
                 "AI Developer" =>
                     UpworkPromptTemplates.Build(UpworkPromptTemplates.AiDeveloperCoverLetter, request),
 
+                "Other" =>
+                    UpworkPromptTemplates.Build(UpworkPromptTemplates.OtherCoverLetter, request),
+
                 _ =>
                     UpworkPromptTemplates.Build(UpworkPromptTemplates.TechnicalWriterCoverLetter, request)
             };

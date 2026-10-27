@@ -230,6 +230,27 @@ namespace NewAI_CV_builder.Utilities
 
             ";
 
+        public const string OtherCoverLetter =
+            @"Create an upwork proposal using the following job description:
+
+            {0}
+
+<<REVERSE_HOOK>>
+
+            This job is outside my usual roles, so build the proposal purely from the job description. Do NOT claim prior experience in this specific field, and do NOT borrow projects or wording from web development, desktop development, technical writing, or AI development proposals.
+
+            Show that I have read and understood what the client needs by restating their core problem in my own words, then briefly describe how I would approach it.
+
+            Focus on transferable strengths: clear and proactive communication, reliability and meeting deadlines, learning new tools and domains quickly, and methodical problem solving.
+
+            Reference my GitHub and blog as evidence of how I work, not as proof of experience in this field:
+            https://github.com/bigboybamo
+            https://dev.to/bigboybamo
+
+            Keep it short, honest, and specific to this job. Sign off as Ola.
+<<GEN_RULES>>
+            ";
+
         public static string Build(string template, UpworkProposalRequest request)
         {
             if (!template.Contains(GenRulesToken))
