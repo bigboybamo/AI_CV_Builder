@@ -60,7 +60,7 @@ All utility classes are `static`. There are no interfaces, no DI container, and 
 
 ### Key flows
 
-1. **Resume optimisation:** User pastes a job description + selects/provides a JSON resume → prompt built by `AtsResumePromptBuilder.Build` → sent to OpenAI (`gpt-4.1-mini`) or Claude (`claude-sonnet-4-5-20250929`) → result displayed, auto-stripped of markdown fences → `ResumakePlaywrightFlow.GeneratePdfFromJsonAsync` generates a PDF via resumake.io
+1. **Resume optimisation:** User pastes a job description + selects/provides a JSON resume → prompt built by `AtsResumePromptBuilder.Build` → sent to OpenAI (`gpt-5.4-mini-2026-03-17`) or Claude (`claude-sonnet-5-5`) → result displayed, auto-stripped of markdown fences → `ResumakePlaywrightFlow.GeneratePdfFromJsonAsync` generates a PDF via resumake.io
 
 2. **Upwork proposal generation:** User pastes a job description + selects a job title + optional checkbox rules → prompt built by `AtsResumePromptBuilder.BuildUpwork` → sent to OpenAI or Claude → output auto-copied to clipboard
 
@@ -138,8 +138,10 @@ Secrets are loaded from a `.env` file in `NewAI_CV_builder/` at startup via `Dot
 
 | Variable | Description |
 |---|---|
-| `OPENAI_API_KEY` | OpenAI API key for `gpt-4.1-mini` calls |
+| `OPENAI_API_KEY` | OpenAI API key for `gpt-5.4-mini-2026-03-17` calls |
 | `CLAUDIUS_API_KEY` | Anthropic Claude API key for Claude model calls |
+| `OPENAI_MODEL` | Optional OpenAI model override (defaults to `gpt-5.4-mini-2026-03-17`) |
+| `CLAUDE_MODEL` | Optional Claude model override (defaults to `claude-sonnet-5-5`) |
 | `RESUME_DOWNLOAD_PATH` | Local folder path where the generated PDF is saved |
 | `RESUME_FILE_NAME` | Output PDF file name (e.g. `MyResume.pdf`) |
 | `BASE_RESUME_FILE_NAME` | Full path to the default JSON resume used when "Use Base Resume" is checked |
@@ -216,7 +218,7 @@ Integration configs live under `integrations/` (azure-devops, github, jira, slac
 
 ### When you are unsure
 - Ask before modifying the sample proposal text inside `UpworkPromptTemplates.cs` — those examples are intentional reference material
-- Ask before changing AI model identifiers (`gpt-4.1-mini`, `claude-sonnet-4-5-20250929`) — the user may want to control these explicitly
+- Ask before changing the default AI model identifiers (`gpt-5.4-mini-2026-03-17`, `claude-sonnet-5-5`) — the user may want to control these explicitly
 
 ---
 

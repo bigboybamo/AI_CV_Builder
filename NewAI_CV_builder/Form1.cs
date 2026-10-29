@@ -9,6 +9,8 @@ namespace NewAI_CV_builder
 {
     public partial class Form1 : Form
     {
+        private const string DefaultOpenAiModel = "gpt-5.4-mini-2026-03-17";
+        private const string DefaultClaudeModel = "claude-sonnet-5-5";
         private readonly string? developerLoomUrl = Environment.GetEnvironmentVariable("DEVELOPER_LOOM_URL");
         private readonly string? technicalWriterLoomUrl = Environment.GetEnvironmentVariable("TECHNICAL_WRITER_LOOM_URL");
         private readonly string? aiDeveloperLoomUrl = Environment.GetEnvironmentVariable("AI_DEVELOPER_LOOM_URL");
@@ -44,7 +46,8 @@ namespace NewAI_CV_builder
         }
         private static readonly HttpClient _httpClaude = new HttpClient
         {
-            BaseAddress = new Uri("https://api.anthropic.com/")
+            BaseAddress = new Uri("https://api.anthropic.com/"),
+            Timeout = TimeSpan.FromMinutes(5)
         };
 
         private static readonly HttpClient _httpOpenAI = new HttpClient
@@ -58,6 +61,12 @@ namespace NewAI_CV_builder
 
             if (_isUpdating) return;
 
+            if (IsAiError(TextOutput.Text))
+            {
+                JsonCV.Text = string.Empty;
+                return;
+            }
+
             _isUpdating = true;
             JsonCV.Text = MarkdownText.StripCodeFence(TextOutput.Text);
             _isUpdating = false;
@@ -67,7 +76,8 @@ namespace NewAI_CV_builder
 
         public static async Task<string> CallOpenAiAsync(string prompt, string apiKey, CancellationToken cancellationToken = default)
         {
-            Log.Information("CallOpenAiAsync started. PromptLength={PromptLength}", prompt?.Length ?? 0);
+            var model = ResolveModel("OPENAI_MODEL", DefaultOpenAiModel);
+            Log.Information("CallOpenAiAsync started. Model={Model} PromptLength={PromptLength}", model, prompt?.Length ?? 0);
 
             var preview = (prompt ?? string.Empty).Replace("\r", " ").Replace("\n", " ");
             if (preview.Length > 200)
@@ -76,8 +86,12 @@ namespace NewAI_CV_builder
 
             var request = new
             {
-                model = "gpt-4.1-mini",
-                input = prompt
+                model,
+                input = prompt,
+                reasoning = new
+                {
+                    effort = "none"
+                }
             };
 
             using var msg = new HttpRequestMessage(HttpMethod.Post, "v1/responses");
@@ -102,30 +116,10 @@ namespace NewAI_CV_builder
                     return $"Error: {(int)resp.StatusCode} {resp.ReasonPhrase}\n{json}";
                 }
 
-                // The Responses API includes a convenient aggregated string in `output_text` in many SDKs,
-                using var doc = JsonDocument.Parse(json);
-                Log.Debug("Parsed JSON response.");
-
-                // Try to extract: output[0].content[0].text
-                if (doc.RootElement.TryGetProperty("output", out var output) &&
-                    output.ValueKind == JsonValueKind.Array &&
-                    output.GetArrayLength() > 0)
-                {
-                    var content = output[0].GetProperty("content");
-                    if (content.ValueKind == JsonValueKind.Array && content.GetArrayLength() > 0)
-                    {
-                        var first = content[0];
-                        if (first.TryGetProperty("text", out var textEl))
-                        {
-                            var result = textEl.GetString() ?? "";
-                            Log.Information("CallOpenAiAsync completed successfully. OutputLength={OutputLength}", result.Length);
-                            return result;
-                        }
-                    }
-                }
-
-                Log.Warning("Response did not contain expected 'output[0].content[0].text'; returning raw JSON.");
-                return json;
+                var result = AiResponseParser.ParseOpenAi(json ?? string.Empty);
+                Log.Information("CallOpenAiAsync completed. Model={Model} IsError={IsError} OutputLength={OutputLength}",
+                    model, IsAiError(result), result.Length);
+                return result;
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
@@ -143,7 +137,8 @@ namespace NewAI_CV_builder
 
         public static async Task<string> CallClaudeAsync(string prompt, string apiKey, CancellationToken cancellationToken = default)
         {
-            Log.Information("CallClaudeAsync started. PromptLength={PromptLength}", prompt?.Length ?? 0);
+            var model = ResolveModel("CLAUDE_MODEL", DefaultClaudeModel);
+            Log.Information("CallClaudeAsync started. Model={Model} PromptLength={PromptLength}", model, prompt?.Length ?? 0);
             var preview = (prompt ?? string.Empty).Replace("\r", " ").Replace("\n", " ");
             if (preview.Length > 200)
                 preview = preview.Substring(0, 200) + "...";
@@ -151,8 +146,12 @@ namespace NewAI_CV_builder
 
             var request = new
             {
-                model = "claude-sonnet-4-5-20250929",
-                max_tokens = 4096,
+                model,
+                max_tokens = 16000,
+                output_config = new
+                {
+                    effort = "low"
+                },
                 messages = new[]
                 {
             new
@@ -185,25 +184,10 @@ namespace NewAI_CV_builder
                     return $"Error: {(int)resp.StatusCode} {resp.ReasonPhrase}\n{json}";
                 }
 
-                using var doc = JsonDocument.Parse(json);
-                Log.Debug("Parsed JSON response.");
-
-                // Claude API response structure: content[0].text
-                if (doc.RootElement.TryGetProperty("content", out var content) &&
-                    content.ValueKind == JsonValueKind.Array &&
-                    content.GetArrayLength() > 0)
-                {
-                    var first = content[0];
-                    if (first.TryGetProperty("text", out var textEl))
-                    {
-                        var result = textEl.GetString() ?? "";
-                        Log.Information("CallClaudeAsync completed successfully. OutputLength={OutputLength}", result.Length);
-                        return result;
-                    }
-                }
-
-                Log.Warning("Response did not contain expected 'content[0].text'; returning raw JSON.");
-                return json;
+                var result = AiResponseParser.ParseClaude(json ?? string.Empty);
+                Log.Information("CallClaudeAsync completed. Model={Model} IsError={IsError} OutputLength={OutputLength}",
+                    model, IsAiError(result), result.Length);
+                return result;
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
@@ -390,6 +374,15 @@ namespace NewAI_CV_builder
         private static string ApiKeySettingFor(bool useOpenAi) =>
             useOpenAi ? "OPENAI_API_KEY" : "CLAUDIUS_API_KEY";
 
+        private static string ResolveModel(string settingName, string defaultModel)
+        {
+            var configuredModel = Environment.GetEnvironmentVariable(settingName);
+            return string.IsNullOrWhiteSpace(configuredModel) ? defaultModel : configuredModel.Trim();
+        }
+
+        private static bool IsAiError(string? result) =>
+            result?.StartsWith("Error:", StringComparison.Ordinal) == true;
+
         private void SetBusy(string message)
         {
             statusLabel.ForeColor = SystemColors.ControlText;
@@ -442,6 +435,12 @@ namespace NewAI_CV_builder
             }
 
             if (JsonCV.Text == "Loading...") return;
+
+            if (IsAiError(JsonCV.Text))
+            {
+                SetIdle("PDF generation blocked because the AI request failed.", isError: true);
+                return;
+            }
 
             // Checked before Path.Combine: a blank value there throws ArgumentNullException
             // outside the try below, which would take the whole app down from an async void handler.
@@ -510,6 +509,10 @@ namespace NewAI_CV_builder
         private void TextOutput_TextChanged(object sender, EventArgs e)
         {
             _debounceTimer.Stop();
+
+            if (IsAiError(TextOutput.Text))
+                return;
+
             _debounceTimer.Start();
         }
 
