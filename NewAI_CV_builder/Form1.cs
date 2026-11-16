@@ -25,6 +25,9 @@ namespace NewAI_CV_builder
         private bool _isUpdating;
         private readonly List<string> _jobTitles;
 
+        // Not saved anywhere, so every launch starts on the default blue.
+        private Color _accentColor = ResumeAccentColor.ToColor(ResumeAccentColor.DefaultHex);
+
         // Kept separate so stopping the resume flow never touches an in-flight
         // Upwork proposal, and vice versa. Both are only ever touched on the UI thread.
         private CancellationTokenSource? _resumeCancellationTokenSource;
@@ -43,6 +46,8 @@ namespace NewAI_CV_builder
             Jobs_List.SelectedIndex = 0;
             _debounceTimer.Interval = 300; // ms
             _debounceTimer.Tick += DebounceTimer_Tick;
+
+            UpdateAccentChip();
         }
         private static readonly HttpClient _httpClaude = new HttpClient
         {
@@ -287,12 +292,14 @@ namespace NewAI_CV_builder
 
         /// <summary>
         /// Puts the resume half of the form into its running state: both start buttons off,
-        /// the stop button showing. Paired with <see cref="EndResumeWork"/> in a finally block.
+        /// the stop button showing in the colour button's place. Paired with
+        /// <see cref="EndResumeWork"/> in a finally block.
         /// </summary>
         private void BeginResumeWork()
         {
             SendBtn.Enabled = false;
             Generate_Rsme.Enabled = false;
+            AccentColorBtn.Visible = false;
             StopResumeBtn.Visible = true;
             StopResumeBtn.Enabled = true;
         }
@@ -308,6 +315,7 @@ namespace NewAI_CV_builder
 
             StopResumeBtn.Enabled = false;
             StopResumeBtn.Visible = false;
+            AccentColorBtn.Visible = true;
             SendBtn.Enabled = true;
             Generate_Rsme.Enabled = true;
         }
@@ -460,11 +468,12 @@ namespace NewAI_CV_builder
 
             try
             {
-                await ResumakePlaywrightFlow.GeneratePdfFromJsonAsync(
-                    JsonCV.Text,
-                    downloadsFolder,
-                    headless: true,
-                    cancellationToken);
+                await ResumakePlaywrightFlow.GeneratePdfFromJsonAsync(new ResumePdfRequest
+                {
+                    ResumeJson = JsonCV.Text,
+                    OutputPdfFilePath = downloadsFolder,
+                    AccentColor = ResumeAccentColor.ToHex(_accentColor)
+                }, cancellationToken);
 
                 SetIdle($"PDF saved to {downloadsFolder}");
                 MessageBox.Show(this, "Resume generated successfully",
@@ -488,6 +497,68 @@ namespace NewAI_CV_builder
             {
                 EndResumeWork();
             }
+        }
+
+        private void AccentColorBtn_Click(object sender, EventArgs e)
+        {
+            accentColorMenu.Show(AccentColorBtn, new Point(0, AccentColorBtn.Height));
+        }
+
+        private void ChooseAccentColorItem_Click(object sender, EventArgs e)
+        {
+            accentColorDialog.Color = _accentColor;
+
+            if (accentColorDialog.ShowDialog(this) != DialogResult.OK)
+                return;
+
+            var picked = accentColorDialog.Color;
+
+            if (ResumeAccentColor.IsHardToReadOnWhite(ResumeAccentColor.ToHex(picked)))
+            {
+                var answer = MessageBox.Show(this,
+                    "This colour is very light, so headers and links may be hard to read on a white page.\n\nUse it anyway?",
+                    "Light Colour", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+
+                if (answer != DialogResult.Yes)
+                    return;
+            }
+
+            SetAccentColor(picked);
+        }
+
+        private void ResetAccentColorItem_Click(object sender, EventArgs e)
+        {
+            SetAccentColor(ResumeAccentColor.ToColor(ResumeAccentColor.DefaultHex));
+        }
+
+        private void SetAccentColor(Color color)
+        {
+            _accentColor = color;
+            UpdateAccentChip();
+
+            var hex = ResumeAccentColor.ToHex(color);
+            Log.Information("CV accent colour set to {AccentColor}", hex);
+            SetIdle(hex == ResumeAccentColor.DefaultHex
+                ? "CV accent colour reset to the default blue."
+                : $"CV accent colour set to {hex}.");
+        }
+
+        /// <summary>
+        /// Redraws the small square on the colour button so it shows the current accent.
+        /// </summary>
+        private void UpdateAccentChip()
+        {
+            var chip = new Bitmap(14, 14);
+            using (var graphics = Graphics.FromImage(chip))
+            using (var fill = new SolidBrush(_accentColor))
+            {
+                graphics.FillRectangle(fill, 0, 0, 14, 14);
+                graphics.DrawRectangle(Pens.Gray, 0, 0, 13, 13);
+            }
+
+            var previous = AccentColorBtn.Image;
+            AccentColorBtn.Image = chip;
+            previous?.Dispose();
         }
 
         private void StopResumeBtn_Click(object sender, EventArgs e)
