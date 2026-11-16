@@ -1,4 +1,5 @@
 using Microsoft.Playwright;
+using NewAI_CV_builder.Utilities;
 using Serilog;
 using System.Net;
 using System.Text;
@@ -11,17 +12,23 @@ namespace NewAI_CV_builder.Services
         /// <summary>
         /// Takes resume JSON (JSON Resume schema), renders it into a styled HTML
         /// document (ported from generate_resume.py) and prints it to a PDF at
-        /// <paramref name="outputPdfFilePath"/> using headless Chromium via Playwright.
+        /// <see cref="ResumePdfRequest.OutputPdfFilePath"/> using headless Chromium via Playwright.
         /// All highlights from every job are always rendered — nothing is dropped.
         /// Cancelling via <paramref name="cancellationToken"/> throws
         /// <see cref="OperationCanceledException"/> and removes any half-written PDF.
+        /// <see cref="ResumePdfRequest.AccentColor"/> is a hex colour for section headers, links,
+        /// the header underline and skill tags; leave it unset for the default blue.
         /// </summary>
         public static async Task GeneratePdfFromJsonAsync(
-            string resumeJson,
-            string outputPdfFilePath,
-            bool headless = true,
+            ResumePdfRequest request,
             CancellationToken cancellationToken = default)
         {
+            ArgumentNullException.ThrowIfNull(request);
+
+            var resumeJson = request.ResumeJson;
+            var outputPdfFilePath = request.OutputPdfFilePath;
+            var headless = request.Headless;
+
             if (string.IsNullOrWhiteSpace(resumeJson))
                 throw new ArgumentException("Resume JSON is empty.", nameof(resumeJson));
 
@@ -32,6 +39,9 @@ namespace NewAI_CV_builder.Services
             var outputDir = Path.GetDirectoryName(outputPdfFilePath);
             if (string.IsNullOrWhiteSpace(outputDir))
                 throw new ArgumentException("Output path must include a directory and filename (e.g. C:\\Users\\...\\Downloads\\resume.pdf)");
+
+            // Rejects anything that is not a plain hex colour before it can reach the stylesheet.
+            var accent = ResumeAccentColor.Normalize(request.AccentColor);
 
             Directory.CreateDirectory(outputDir);
 
@@ -50,9 +60,9 @@ namespace NewAI_CV_builder.Services
 
             try
             {
-                var html = RenderHtml(document.RootElement);
+                var html = RenderHtml(document.RootElement, accent);
 
-                Log.Information("Rendering resume PDF via headless Chromium to {OutputPath}...", outputPdfFilePath);
+                Log.Information("Rendering resume PDF via headless Chromium to {OutputPath} with AccentColor={AccentColor}...", outputPdfFilePath, accent);
 
                 // The Playwright APIs below take no CancellationToken, so cancellation is
                 // honoured at the boundary of each expensive step instead.
@@ -202,10 +212,13 @@ namespace NewAI_CV_builder.Services
 
         /// <summary>
         /// Builds the polished resume HTML from the parsed JSON.
-        /// Direct port of <c>render_html</c> in generate_resume.py.
+        /// Direct port of <c>render_html</c> in generate_resume.py, with the accent colour
+        /// (default blue when <paramref name="accentColor"/> is omitted) made configurable.
         /// </summary>
-        private static string RenderHtml(JsonElement data)
+        public static string RenderHtml(JsonElement data, string? accentColor = null)
         {
+            var palette = ResumeAccentColor.PaletteFor(accentColor);
+
             var basics = data.ValueKind == JsonValueKind.Object && data.TryGetProperty("basics", out var b)
                 ? b
                 : default;
@@ -230,8 +243,8 @@ namespace NewAI_CV_builder.Services
     color: #1f2933; font-size: 9.5pt; line-height: 1.3; margin: 0;
     -webkit-print-color-adjust: exact; print-color-adjust: exact;
   }
-  a { color: #1f6feb; text-decoration: none; }
-  header { border-bottom: 2.5px solid #1f6feb; padding-bottom: 6px; margin-bottom: 10px; }
+  a { color: {{palette.Accent}}; text-decoration: none; }
+  header { border-bottom: 2.5px solid {{palette.Accent}}; padding-bottom: 6px; margin-bottom: 10px; }
   h1 { font-size: 20pt; margin: 0; letter-spacing: .5px; color: #0b2545; }
   .contact { margin-top: 4px; font-size: 9pt; color: #52606d; }
   .contact span { white-space: nowrap; }
@@ -239,7 +252,7 @@ namespace NewAI_CV_builder.Services
   section { margin-bottom: 9px; }
   h2 {
     font-size: 10pt; text-transform: uppercase; letter-spacing: 1.2px;
-    color: #1f6feb; margin: 0 0 5px; padding-bottom: 2px;
+    color: {{palette.Accent}}; margin: 0 0 5px; padding-bottom: 2px;
     border-bottom: 1px solid #e4e7eb;
   }
   .entry { margin-bottom: 7px; page-break-inside: avoid; }
@@ -254,7 +267,7 @@ namespace NewAI_CV_builder.Services
   .skill-row { display: flex; gap: 8px; align-items: baseline; }
   .skill-name { font-weight: 600; color: #334e68; min-width: 165px; }
   .tags span {
-    display: inline-block; background: #eef4ff; color: #1f4e8c;
+    display: inline-block; background: {{palette.TagBackground}}; color: {{palette.TagText}};
     border-radius: 4px; padding: 1px 6px; margin: 0 3px 3px 0; font-size: 8.6pt;
   }
   .edu-line, .award { margin-bottom: 5px; page-break-inside: avoid; }

@@ -28,6 +28,7 @@ namespace NewAI_CV_builder
         /// </summary>
         private void InitializeComponent()
         {
+            components = new System.ComponentModel.Container();
             headerPanel = new Panel();
             appTitleLabel = new Label();
             appSubtitleLabel = new Label();
@@ -49,6 +50,12 @@ namespace NewAI_CV_builder
             Generate_Rsme = new Button();
             SendBtn = new Button();
             StopResumeBtn = new Button();
+            AccentColorBtn = new Button();
+            accentColorMenu = new ContextMenuStrip(components);
+            chooseAccentColorItem = new ToolStripMenuItem();
+            resetAccentColorItem = new ToolStripMenuItem();
+            accentColorDialog = new ColorDialog();
+            accentToolTip = new ToolTip(components);
             lblAiOutput = new Label();
             lblJsonCv = new Label();
             TextOutput = new TextBox();
@@ -83,6 +90,7 @@ namespace NewAI_CV_builder
             resumeLayout.SuspendLayout();
             sourcePanel.SuspendLayout();
             actionsFlow.SuspendLayout();
+            accentColorMenu.SuspendLayout();
             upworkGroup.SuspendLayout();
             upworkLayout.SuspendLayout();
             upworkOptionsLayout.SuspendLayout();
@@ -326,9 +334,11 @@ namespace NewAI_CV_builder
             actionsFlow.Controls.Add(Generate_Rsme);
             actionsFlow.Controls.Add(SendBtn);
             actionsFlow.Controls.Add(StopResumeBtn);
+            actionsFlow.Controls.Add(AccentColorBtn);
             actionsFlow.Dock = DockStyle.Fill;
             actionsFlow.FlowDirection = FlowDirection.RightToLeft;
             actionsFlow.Location = new Point(335, 289);
+            actionsFlow.Margin = new Padding(0, 3, 0, 3);
             actionsFlow.Name = "actionsFlow";
             actionsFlow.Size = new Size(326, 72);
             actionsFlow.TabIndex = 3;
@@ -342,9 +352,9 @@ namespace NewAI_CV_builder
             Generate_Rsme.Font = new Font("Segoe UI", 9.75F, FontStyle.Bold);
             Generate_Rsme.ForeColor = Color.White;
             Generate_Rsme.Location = new Point(173, 20);
-            Generate_Rsme.Margin = new Padding(4, 20, 2, 3);
+            Generate_Rsme.Margin = new Padding(3, 14, 1, 3);
             Generate_Rsme.Name = "Generate_Rsme";
-            Generate_Rsme.Size = new Size(105, 38);
+            Generate_Rsme.Size = new Size(98, 48);
             Generate_Rsme.TabIndex = 1;
             Generate_Rsme.Text = "Generate PDF";
             Generate_Rsme.UseVisualStyleBackColor = false;
@@ -358,9 +368,9 @@ namespace NewAI_CV_builder
             SendBtn.Font = new Font("Segoe UI", 9.75F, FontStyle.Bold);
             SendBtn.ForeColor = Color.White;
             SendBtn.Location = new Point(15, 20);
-            SendBtn.Margin = new Padding(4, 20, 2, 3);
+            SendBtn.Margin = new Padding(3, 14, 1, 3);
             SendBtn.Name = "SendBtn";
-            SendBtn.Size = new Size(105, 38);
+            SendBtn.Size = new Size(98, 48);
             SendBtn.TabIndex = 0;
             SendBtn.Text = "Tailor with AI";
             SendBtn.UseVisualStyleBackColor = false;
@@ -375,14 +385,57 @@ namespace NewAI_CV_builder
             StopResumeBtn.Font = new Font("Segoe UI", 9.75F, FontStyle.Bold);
             StopResumeBtn.ForeColor = Color.White;
             StopResumeBtn.Location = new Point(3, 20);
-            StopResumeBtn.Margin = new Padding(4, 20, 2, 3);
+            StopResumeBtn.Margin = new Padding(3, 14, 1, 3);
             StopResumeBtn.Name = "StopResumeBtn";
-            StopResumeBtn.Size = new Size(56, 38);
+            StopResumeBtn.Size = new Size(56, 48);
             StopResumeBtn.TabIndex = 2;
             StopResumeBtn.Text = "Stop";
             StopResumeBtn.UseVisualStyleBackColor = false;
             StopResumeBtn.Visible = false;
             StopResumeBtn.Click += StopResumeBtn_Click;
+            //
+            // AccentColorBtn
+            //
+            AccentColorBtn.AccessibleName = "CV accent colour";
+            AccentColorBtn.BackColor = Color.White;
+            AccentColorBtn.FlatAppearance.BorderColor = Color.FromArgb(209, 213, 219);
+            AccentColorBtn.FlatStyle = FlatStyle.Flat;
+            AccentColorBtn.Font = new Font("Segoe UI", 9.75F, FontStyle.Bold);
+            AccentColorBtn.ForeColor = Color.FromArgb(31, 41, 55);
+            AccentColorBtn.Location = new Point(3, 20);
+            AccentColorBtn.Margin = new Padding(3, 14, 1, 3);
+            AccentColorBtn.Name = "AccentColorBtn";
+            AccentColorBtn.Size = new Size(76, 48);
+            AccentColorBtn.TabIndex = 3;
+            AccentColorBtn.Text = "Colour";
+            AccentColorBtn.TextImageRelation = TextImageRelation.ImageBeforeText;
+            accentToolTip.SetToolTip(AccentColorBtn, "Accent colour for the CV PDF: headers, links and skill tags");
+            AccentColorBtn.UseVisualStyleBackColor = false;
+            AccentColorBtn.Click += AccentColorBtn_Click;
+            //
+            // accentColorMenu
+            //
+            accentColorMenu.Items.AddRange(new ToolStripItem[] { chooseAccentColorItem, resetAccentColorItem });
+            accentColorMenu.Name = "accentColorMenu";
+            accentColorMenu.Size = new Size(200, 48);
+            //
+            // chooseAccentColorItem
+            //
+            chooseAccentColorItem.Name = "chooseAccentColorItem";
+            chooseAccentColorItem.Size = new Size(199, 22);
+            chooseAccentColorItem.Text = "Choose colour…";
+            chooseAccentColorItem.Click += ChooseAccentColorItem_Click;
+            //
+            // resetAccentColorItem
+            //
+            resetAccentColorItem.Name = "resetAccentColorItem";
+            resetAccentColorItem.Size = new Size(199, 22);
+            resetAccentColorItem.Text = "Reset to default (blue)";
+            resetAccentColorItem.Click += ResetAccentColorItem_Click;
+            //
+            // accentColorDialog
+            //
+            accentColorDialog.FullOpen = true;
             //
             // lblAiOutput
             //
@@ -685,6 +738,7 @@ namespace NewAI_CV_builder
             sourcePanel.ResumeLayout(false);
             sourcePanel.PerformLayout();
             actionsFlow.ResumeLayout(false);
+            accentColorMenu.ResumeLayout(false);
             upworkGroup.ResumeLayout(false);
             upworkLayout.ResumeLayout(false);
             upworkLayout.PerformLayout();
@@ -722,6 +776,12 @@ namespace NewAI_CV_builder
         private Button SendBtn;
         private Button Generate_Rsme;
         private Button StopResumeBtn;
+        private Button AccentColorBtn;
+        private ContextMenuStrip accentColorMenu;
+        private ToolStripMenuItem chooseAccentColorItem;
+        private ToolStripMenuItem resetAccentColorItem;
+        private ColorDialog accentColorDialog;
+        private ToolTip accentToolTip;
         private Label lblAiOutput;
         private Label lblJsonCv;
         private TextBox TextOutput;
